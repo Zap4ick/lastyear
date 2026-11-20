@@ -479,6 +479,33 @@ describe('story image', () => {
     expect(up.rawPayload.equals(down.rawPayload)).toBe(false);
   });
 
+  it('finds a photo at its other CDN address when one edge answers 404', async () => {
+    const hash = 'abcdef0123456789abcdef0123456789';
+    const photo = `https://lastfm-img.freetls.fastly.net/i/u/ar0/${hash}.jpg`;
+    const jpeg = await sharp({ create: { width: 40, height: 40, channels: 3, background: '#808080' } })
+      .jpeg()
+      .toBuffer();
+    const asked: string[] = [];
+    const { app } = await setup({
+      wrapFetch: (fn) =>
+        (async (input: string | URL, init?: RequestInit) => {
+          const u = String(input);
+          if (!u.includes(hash)) return fn(input, init);
+          asked.push(u);
+          return u.startsWith('https://lastfm.freetls')
+            ? new Response(new Uint8Array(jpeg), { headers: { 'content-type': 'image/jpeg' } })
+            : new Response('not found', { status: 404 });
+        }) as typeof fetch,
+    });
+    const { id } = (await app.inject({ method: 'POST', url: '/api/results', payload: { payload } })).json();
+    const k = `${payload.concerts[0]!.kind}:${payload.concerts[0]!.id}`;
+    const res = await app.inject({
+      url: `/api/story/${id}.png?t=poster&k=${k}&ph=${encodeURIComponent(photo)}`,
+    });
+    expect(res.headers['cache-control']).toBe('public, max-age=600');
+    expect(asked).toEqual([photo, photo.replace('lastfm-img.', 'lastfm.')]);
+  });
+
   it('never fetches photos from hosts outside the allowlist', async () => {
     const { app, upstream } = await setup();
     const { id } = (await app.inject({ method: 'POST', url: '/api/results', payload: { payload } })).json();

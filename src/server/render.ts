@@ -72,27 +72,56 @@ class Lru<V> {
 
 const rawPhotos = new Lru<Promise<Buffer>>(60);
 
+const LASTFM_IMAGE = /^https:\/\/lastfm(?:-img)?\.freetls\.fastly\.net\/i\/u\/[^/]+\/([0-9a-f]{32})(\.\w+)?$/;
+
 /**
- * The CDN, one retry. Generous timeout: the Story page asks for every template at once, often on a
- * machine that has just woken up, and the photo is the point of the image. Throws with the reason.
+ * Where else the same last.fm image lives. Fastly edges can hold a stale 404 for one URL (seen from
+ * Amsterdam for an ar0 .jpg that Berlin served fine): the other host has its own cache, and the
+ * 770x0 rendition and the extensionless original are different objects.
+ */
+export function photoUrls(url: string): string[] {
+  const m = url.match(LASTFM_IMAGE);
+  if (!m) return [url];
+  const [, hash, ext = ''] = m;
+  const other = url.includes('//lastfm-img.') ? 'lastfm' : 'lastfm-img';
+  return [
+    url,
+    `https://${other}.freetls.fastly.net/i/u/ar0/${hash}${ext}`,
+    `https://lastfm.freetls.fastly.net/i/u/770x0/${hash}${ext}`,
+    `https://lastfm.freetls.fastly.net/i/u/ar0/${hash}`,
+  ].filter((u, i, all) => all.indexOf(u) === i);
+}
+
+/**
+ * The CDN with one retry; on a 404, the image's other addresses. Generous timeout: the Story page asks
+ * for every template at once, often on a machine that has just woken up, and the photo is the point of
+ * the image. Throws with the reasons.
  */
 async function download(url: string, fetchImpl: typeof fetch): Promise<Buffer> {
   const reasons: string[] = [];
-  for (let attempt = 0; attempt < 2; attempt++) {
+  const attempt = async (candidate: string): Promise<Buffer | 404 | null> => {
     try {
-      const res = await fetchImpl(url, { signal: AbortSignal.timeout(15_000) });
+      const res = await fetchImpl(candidate, { signal: AbortSignal.timeout(15_000) });
       if (!res.ok) {
-        reasons.push(`HTTP ${res.status}`);
-        if (res.status === 404) break;
-        continue;
+        reasons.push(`HTTP ${res.status} ${candidate}`);
+        return res.status === 404 ? 404 : null;
       }
       const buf = Buffer.from(await res.arrayBuffer());
       if (buf.length > 10 * 1024 * 1024) throw new Error(`too big (${buf.length} bytes)`);
       return buf;
     } catch (e) {
-      reasons.push(e instanceof Error ? `${e.name}: ${e.message}` : String(e));
+      reasons.push(`${e instanceof Error ? `${e.name}: ${e.message}` : String(e)} ${candidate}`);
+      return null;
     }
+  };
+  let got = await attempt(url);
+  if (got === null) got = await attempt(url); // timeout, network error, 5xx: once more
+  // Only a 404 sends us elsewhere; a slow or broken CDN would just be slow at every address.
+  for (const alt of photoUrls(url).slice(1)) {
+    if (got !== 404) break;
+    got = await attempt(alt);
   }
+  if (got instanceof Buffer) return got;
   throw new Error(reasons.join('; '));
 }
 
