@@ -50,4 +50,6 @@ See [DEPLOY.md](DEPLOY.md): one Docker container with an HTTPS URL and a small v
 
 ## License
 
-[MIT](LICENSE). Artist photos come from Last.fm and Deezer and belong to their owners.
+[AGPL-3.0](LICENSE) © 2026 Andrei Lazuk. You can use, change and share this code, but if you run a modified version as a service, you have to publish your source under the same license and keep the copyright notice.
+
+Artist photos come from Last.fm and Deezer and belong to their owners.

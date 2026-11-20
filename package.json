@@ -2,6 +2,7 @@
   "name": "lastyear",
   "version": "0.0.1",
   "private": true,
+  "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
     "dev": "concurrently -k -n api,web -c red,blue \"tsx watch --clear-screen=false src/server/index.ts\" \"vite\"",
