@@ -49,6 +49,15 @@ export function About() {
           <dt>Cookies and tracking</dt>
           <dd>None. Your browser keeps your picks and the key to delete your result locally.</dd>
         </div>
+        <div>
+          <dt>Made by</dt>
+          <dd>
+            <a href="https://lazuk.me" rel="author">
+              lazuk.me
+            </a>{' '}
+            · <a href="https://github.com/Zap4ick">github.com/Zap4ick</a>
+          </dd>
+        </div>
       </dl>
     </main>
   );
