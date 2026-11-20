@@ -37,6 +37,8 @@ export function detailsFor(row: YearPageEvent, imageHash = '0'.repeat(32)): Even
     })),
     lineupTotal: names.length,
     headerImageUrl: null,
+    posterUrl: null,
+    website: null,
     venue: { name: row.venue, street: null, city: row.city, country: row.country },
   };
 }

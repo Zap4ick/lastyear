@@ -6,7 +6,7 @@ import { ConcertList } from '../components/ConcertList.tsx';
 import { PhotoPicker } from '../components/PhotoPicker.tsx';
 import { StatsPanel } from '../components/StatsPanel.tsx';
 import { TopPicks, type SlotView } from '../components/TopPicks.tsx';
-import { headliner, lastfmPhoto } from '../../shared/concert.ts';
+import { festivalWebsite, headliner, lastfmPhoto } from '../../shared/concert.ts';
 import {
   concertKey,
   loadPicks,
@@ -28,6 +28,7 @@ export function Result({ id }: { id: string }) {
   const [payload, setPayload] = useState<ImportPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fallbackPhotos, setFallbackPhotos] = useState<Record<string, string | null>>({});
+  const [sitePhotos, setSitePhotos] = useState<Record<string, string | null>>({});
   const [picks, setPicks] = useState<Pick[]>([]);
   const [fullHint, setFullHint] = useState(false);
   const [photoFor, setPhotoFor] = useState<string | null>(null);
@@ -78,9 +79,23 @@ export function Result({ id }: { id: string }) {
       .catch(() => {});
   }, [payload]);
 
+  // Festivals: the picture from the festival's own website, fetched and stored by our server.
+  useEffect(() => {
+    if (!payload?.concerts.some((c) => festivalWebsite(c))) return;
+    api
+      .siteImages(id)
+      .then((r) => setSitePhotos(r.images))
+      .catch(() => {});
+  }, [payload, id]);
+
   const optionsFor = useCallback(
-    (c: Concert) => photoOptions(c, fallbackPhotos[headliner(c) ?? ''] ?? null),
-    [fallbackPhotos],
+    (c: Concert) =>
+      photoOptions(
+        c,
+        fallbackPhotos[headliner(c) ?? ''] ?? null,
+        sitePhotos[festivalWebsite(c) ?? ''] ?? null,
+      ),
+    [fallbackPhotos, sitePhotos],
   );
 
   const slots: SlotView[] = picks.flatMap((pick) => {

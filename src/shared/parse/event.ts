@@ -11,8 +11,24 @@ export function parseEventPage(doc: Document): EventDetails {
     headerImageUrl: fullSizeImage(
       backgroundImage(doc.querySelector('.header-background--has-image')?.getAttribute('style')),
     ),
+    posterUrl: fullSizeImage(doc.querySelector('.event-poster img')?.getAttribute('src')),
+    website: parseWebsite(doc),
     venue: parseVenue(doc),
   };
+}
+
+/** The "Link" section: the event's own site. Only absolute http(s) links that lead off last.fm. */
+function parseWebsite(doc: Document): string | null {
+  const href = doc.querySelector('.qa-event-link a[href]')?.getAttribute('href')?.trim();
+  if (!href) return null;
+  try {
+    const u = new URL(href);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+    if (u.username || u.password || /(^|\.)last\.fm$/i.test(u.hostname)) return null;
+    return u.href.length <= 500 ? u.href : null;
+  } catch {
+    return null;
+  }
 }
 
 function parsePerformers(doc: Document): Performer[] {

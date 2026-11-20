@@ -42,8 +42,8 @@ export function About() {
         <div>
           <dt>Other lookups</dt>
           <dd>
-            Genres and your scrobble chart come from the Last.fm API; missing photos from Deezer. Photos
-            belong to their owners.
+            Genres and your scrobble chart come from the Last.fm API; missing photos from Deezer; festival
+            pictures from the festival's own website (its sharing image). Photos belong to their owners.
           </dd>
         </div>
         <div>
@@ -69,7 +69,8 @@ export function About() {
           results from at least two different users read the same event page identically, its public details
           (line-up, venue, photo links) are reused for others who went to that event, without saying whose
           results they came from; this stops as soon as those results are deleted. Photos load straight from
-          the last.fm and Deezer image servers, which see your IP address like any website does. Server logs
+          the last.fm and Deezer image servers, which see your IP address like any website does; festival
+          pictures are fetched by our server and shown from here, so festival sites never see you. Server logs
           note which page or API was called and when, never your IP address or username; your IP address is
           held briefly in memory to stop abuse and is never written to disk. The data lives on a Fly.io server
           in Amsterdam, EU; Fly.io is a US company that hosts it for us under its data processing agreement.

@@ -4,6 +4,7 @@ import { sep } from 'node:path';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import fastifyStatic from '@fastify/static';
 import { z } from 'zod';
+import { festivalWebsite } from '../shared/concert.ts';
 import { mergePayloads } from '../shared/merge.ts';
 import { importPayloadSchema } from '../shared/schema.ts';
 import { EVENT_KEY } from '../shared/sharedEvents.ts';
@@ -12,12 +13,14 @@ import { buildBookmarklet, type BookmarkletBuild } from './bookmarklet.ts';
 import type { Db } from './db.ts';
 import type { Deezer } from './deezer.ts';
 import { LastfmError, type Lastfm } from './lastfm.ts';
+import type { SiteImages } from './siteImages.ts';
 import { registerStoryRoutes } from './story.ts';
 
 export interface AppDeps {
   db: Db;
   lastfm: Lastfm;
   deezer: Deezer;
+  siteImages: SiteImages;
   appUrl: string;
   /** Built SPA to serve (production). In dev, Vite serves the SPA and proxies /api here. */
   webDir?: string;
@@ -181,6 +184,27 @@ export async function buildApp(deps: AppDeps) {
       }),
     );
     return { photos: Object.fromEntries(q.data.artist.map((a, i) => [a, photos[i]])) };
+  });
+
+  // Pictures from festival websites, for the festivals of one stored result only: nobody can make the
+  // server fetch an arbitrary URL without first storing a result (rate-limited) that names it.
+  app.get<{ Params: { id: string } }>('/api/results/:id/site-images', async (req, reply) => {
+    if (!limit(req, 'lookup', 120, 60_000)) return tooMany(reply);
+    const row = /^[A-Za-z0-9]{6,20}$/.test(req.params.id) ? deps.db.getResult(req.params.id) : undefined;
+    if (!row) return reply.code(404).send({ error: 'not-found' });
+    const payload = JSON.parse(row.payload) as ImportPayload;
+    const sites = [...new Set(payload.concerts.map(festivalWebsite).filter((w): w is string => !!w))].slice(
+      0,
+      30,
+    );
+    const paths = await mapLimit(sites, 3, (w) => deps.siteImages.imageFor(w));
+    return { images: Object.fromEntries(sites.map((w, i) => [w, paths[i]])) };
+  });
+
+  app.get<{ Params: { file: string } }>('/api/site-image/:file', async (req, reply) => {
+    const bytes = deps.siteImages.bytes(`/api/site-image/${req.params.file}`);
+    if (!bytes) return reply.code(404).send({ error: 'not-found' });
+    return reply.type('image/jpeg').header('Cache-Control', 'public, max-age=86400').send(bytes);
   });
 
   app.get<{ Params: { name: string; year: string } }>('/api/scrobbles/:name/:year', async (req, reply) => {

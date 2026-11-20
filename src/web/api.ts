@@ -49,6 +49,9 @@ export const api = {
     ),
   scrobbles: (user: string, year: number) =>
     request<ScrobbleChart>(`/api/scrobbles/${encodeURIComponent(user)}/${year}`),
+  /** Pictures from the result's festival websites, by website: our path, or null when there is none. */
+  siteImages: (id: string) =>
+    request<{ images: Record<string, string | null> }>(`/api/results/${encodeURIComponent(id)}/site-images`),
   photos: (artists: string[]) =>
     request<{ photos: Record<string, string | null> }>(
       `/api/photos?${artists.map((a) => `artist=${encodeURIComponent(a)}`).join('&')}`,

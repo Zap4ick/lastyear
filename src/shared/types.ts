@@ -48,8 +48,18 @@ export interface EventDetails {
   performers: Performer[];
   /** The number in the "Line-up (N)" heading; larger than performers.length when truncated. */
   lineupTotal: number | null;
-  /** Full-size header image (ar0) shown behind the event title. */
+  /**
+   * Full-size header image (ar0) shown behind the event title. For festivals this is usually a photo of
+   * some artist from the line-up, not of the festival.
+   */
   headerImageUrl: string | null;
+  /** Full-size poster (ar0) someone uploaded to the event page. Missing in imports made before we read it. */
+  posterUrl?: string | null;
+  /**
+   * The event's own website from the page's "Link" section (http/https), entered by whoever added the
+   * event. For festivals our server takes its share image (og:image). Missing in older imports.
+   */
+  website?: string | null;
   venue: {
     name: string;
     street: string | null;

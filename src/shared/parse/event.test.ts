@@ -18,6 +18,8 @@ describe('parseEventPage', () => {
       imageUrl: `${CDN}/ar0/08300481d8484150c13b769007cac3ef.jpg`,
     });
     expect(ev.headerImageUrl).toBe(`${CDN}/ar0/0f8f6df58e94dc26c929deaa7a24b776.jpg`);
+    expect(ev.posterUrl).toBe(`${CDN}/ar0/7eab3c41c846bf04a05caa44a2f879a1`);
+    expect(ev.website).toBeNull();
     expect(ev.venue).toEqual({
       name: 'Wembley Stadium',
       street: 'Empire Way',
@@ -42,6 +44,8 @@ describe('parseEventPage', () => {
     expect(ev.title).toBe('Anchoress');
     expect(ev.performers.map((p) => p.name)).toEqual(['Anchoress', 'Bartek Mieżyński', 'Flower and Pines']);
     expect(ev.performers.every((p) => p.imageUrl?.includes('/ar0/'))).toBe(true);
+    expect(ev.posterUrl).toBe(`${CDN}/ar0/a64d5590d7c555c8dcc58f582e8c2388`);
+    expect(ev.website).toBe('https://fb.me/e/5nARl1gm7');
     expect(ev.lineupTotal).toBe(3);
     expect(ev.venue).toEqual({
       name: '2KOŁA Pub Motocyklowy',
@@ -61,6 +65,8 @@ describe('parseEventPage', () => {
     expect([...names].sort((a, b) => a.localeCompare(b))).toEqual(names);
     expect(ev.performers.find((p) => p.name === 'Apero')?.imageUrl).toBeNull();
     expect(ev.headerImageUrl).toMatch(/\/ar0\/[0-9a-f]{32}/);
+    expect(ev.posterUrl).toBeNull();
+    expect(ev.website).toBe('https://www.grauzonefestival.nl/');
     expect(ev.venue?.city).toBe('Den Haag');
   });
 

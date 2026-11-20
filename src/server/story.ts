@@ -2,7 +2,7 @@
 import { createHash } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { headliner, lastfmPhoto, photoOptions, resolvePhoto } from '../shared/concert.ts';
+import { festivalWebsite, headliner, lastfmPhoto, photoOptions, resolvePhoto } from '../shared/concert.ts';
 import { artistsForTags, computeStats, type Stats } from '../shared/stats.ts';
 import type { ImportPayload } from '../shared/types.ts';
 import { buildStoryData } from '../story/data.ts';
@@ -80,16 +80,23 @@ export function registerStoryRoutes(app: FastifyInstance, deps: AppDeps, limit: 
           if (!c) return { key, photo: null };
           const chosen = q.data.ph[i];
           if (isAllowedPhoto(chosen)) return { key, photo: chosen };
-          // Automatic: last.fm photo, else Deezer for the headliner.
+          // The festival website's picture: (re)fetched here, so the stored copy exists while we render.
+          const website = festivalWebsite(c);
+          const site = website
+            ? ((await withTimeout(deps.siteImages.imageFor(website), 12_000)) ?? null)
+            : null;
+          if (chosen && chosen === site) return { key, photo: site };
+          // Automatic: poster, festival website, last.fm photo, else Deezer for the headliner.
           const head = headliner(c);
           const fallback =
             !lastfmPhoto(c) && head ? await deps.deezer.getPhoto(head).catch(() => null) : null;
-          return { key, photo: resolvePhoto({ photo: null }, photoOptions(c, fallback)) };
+          return { key, photo: resolvePhoto({ photo: null }, photoOptions(c, fallback, site)) };
         }),
       );
       const stats = await statsFor(row.id, row.updated_at, payload);
       png = await renderStory(template, buildStoryData(payload, picks, stats), {
         fetch: deps.fetch,
+        localPhoto: (url) => deps.siteImages.bytes(url),
         credit,
         onPhotoMissing: (url, reason) => {
           photoMissing = true;

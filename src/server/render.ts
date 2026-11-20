@@ -140,9 +140,18 @@ function rawPhoto(url: string, fetchImpl: typeof fetch): Promise<Buffer> {
 const LASTFM_RED = '#d51007';
 
 /** Crop to size around the most interesting area, then apply the template's treatment. Throws why not. */
-async function preparePhoto(url: string, spec: PhotoSpec, fetchImpl: typeof fetch): Promise<string> {
-  if (!isAllowedPhoto(url)) throw new Error('host not allowed');
-  const buf = await rawPhoto(url, fetchImpl);
+async function preparePhoto(
+  url: string,
+  spec: PhotoSpec,
+  fetchImpl: typeof fetch,
+  localPhoto?: (url: string) => Buffer | null,
+): Promise<string> {
+  let buf = url.startsWith('/') ? (localPhoto?.(url) ?? null) : null;
+  if (url.startsWith('/') && !buf) throw new Error('local photo not found');
+  if (!buf) {
+    if (!isAllowedPhoto(url)) throw new Error('host not allowed');
+    buf = await rawPhoto(url, fetchImpl);
+  }
   let img = sharp(buf).resize(spec.width, spec.height, { fit: 'cover', position: sharp.strategy.attention });
   if (spec.mode === 'mono') img = img.grayscale().modulate({ brightness: 0.95 });
   if (spec.mode === 'red') {
@@ -209,6 +218,8 @@ export async function renderStory(
   opts: {
     fetch?: typeof fetch;
     credit?: string;
+    /** Our own stored pictures (paths like /api/site-image/…), which are not fetched over the network. */
+    localPhoto?: (url: string) => Buffer | null;
     /** Called when a concert had a photo URL but it could not be loaded (the story is drawn without it). */
     onPhotoMissing?: (url: string, reason: string) => void;
   } = {},
@@ -219,10 +230,12 @@ export async function renderStory(
     Promise.all(
       data.concerts.map((c) =>
         c.photo
-          ? preparePhoto(c.photo, template.photo(c.rank, data), fetchImpl).catch((e: unknown) => {
-              opts.onPhotoMissing?.(c.photo!, e instanceof Error ? e.message : String(e));
-              return null;
-            })
+          ? preparePhoto(c.photo, template.photo(c.rank, data), fetchImpl, opts.localPhoto).catch(
+              (e: unknown) => {
+                opts.onPhotoMissing?.(c.photo!, e instanceof Error ? e.message : String(e));
+                return null;
+              },
+            )
           : null,
       ),
     ),

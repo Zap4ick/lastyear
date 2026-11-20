@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { buildApp } from './app.ts';
 import { openDb } from './db.ts';
 import { createDeezer } from './deezer.ts';
+import { createSiteImages } from './siteImages.ts';
 import { createLastfm } from './lastfm.ts';
 
 try {
@@ -37,6 +38,7 @@ const app = await buildApp({
   db,
   lastfm: createLastfm({ apiKey: env.LASTFM_API_KEY, db }),
   deezer: createDeezer({ db }),
+  siteImages: createSiteImages({ db }),
   appUrl,
   webDir: production ? join(import.meta.dirname, '../../dist/web') : undefined,
   logger: true,

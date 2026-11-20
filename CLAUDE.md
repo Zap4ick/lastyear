@@ -64,7 +64,8 @@ indexed by `PRAGMA user_version` — append, never edit existing entries.
 - `results`: one row per import (`id`, `username`, `year`, `payload` JSON = `ImportPayload`, `token_hash`,
   timestamps). Purged when not updated for `RESULT_RETENTION_DAYS` (default 400).
 - `cache`: key/value with expiry for external lookups — `lastfm:user:*` (1 day), `lastfm:tags:*` (30 days),
-  `lastfm:chart:<user>:<year>` (30 days for past years, 6 h for the current one), `deezer:photo:*`.
+  `lastfm:chart:<user>:<year>` (30 days for past years, 6 h for the current one), `deezer:photo:*`,
+  `site:image:<website>` → our path and `site:jpeg:<hash>` → the re-encoded picture (festival websites).
 - `event_votes` / `event_details`: shared event details (`src/shared/sharedEvents.ts`). Each result "votes"
   for the event details it read from last.fm itself (`sharedDetails` unset, matching its own year-page row);
   votes cascade-delete with their result. `POST /api/events/lookup` (CORS for last.fm origins only) serves
@@ -77,7 +78,13 @@ indexed by `PRAGMA user_version` — append, never edit existing entries.
   `story.ts` / `render.ts`), and rate limits. Hence deploy must be **a single instance**.
 
 Photos are only fetched from allow-listed hosts (last.fm CDN and Deezer; `isAllowedPhoto` in `render.ts`).
-Deezer is the fallback when last.fm has no headliner image.
+Deezer is the fallback when last.fm has no headliner image. Photo order (`photoOptions` in `shared/concert.ts`):
+events: headliner, the event page's poster, other performers; festivals: poster, the share image (og:image) of
+the festival's own website, performers; then header image, Deezer. A text poster cropped full-bleed clashes
+with the story text, so it is never an event's default. last.fm's festival header is a photo of some line-up artist, not of the festival. Website
+pictures are fetched only for festivals of a stored result (`src/server/siteImages.ts`), through `safeGet`
+(`safeFetch.ts`: public addresses only, checked at connect time and on every redirect), re-encoded with sharp
+and served from `/api/site-image/<hash>.jpg`, never hot-linked.
 
 ## Story templates (`src/story/`)
 

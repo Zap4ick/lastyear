@@ -83,9 +83,27 @@ describe('photos', () => {
     expect(photoOptions(c, 'https://x/y.jpg')).toEqual([{ url: 'https://x/y.jpg', label: 'NYOS · Deezer' }]);
   });
 
-  it('festival header image is labelled with the festival name', () => {
+  it('events: the headliner stays the default, the poster comes right after', () => {
+    const c = concert();
+    c.details!.posterUrl = img('d');
+    expect(photoOptions(c).map((o) => o.label)).toEqual(['ist ist', 'Poster', 'Third', 'Event image']);
+    c.details!.performers[0]!.imageUrl = null; // headliner without a photo: the poster beats a support act
+    expect(photoOptions(c).map((o) => o.label)).toEqual(['Poster', 'Third', 'Event image']);
+  });
+
+  it('festival: poster, then the website picture, before any performer', () => {
+    const site = '/api/site-image/0123456789abcdef0123456789abcdef.jpg';
     const c = concert({ kind: 'festival', title: 'Grauzone Festival 2026' });
-    expect(photoOptions(c).at(-1)).toEqual({ url: img('c'), label: 'Grauzone Festival 2026' });
+    expect(photoOptions(c, null, site).map((o) => o.label)).toEqual([
+      'Festival website',
+      'ist ist',
+      'Third',
+      'Event image',
+    ]);
+    c.details!.posterUrl = img('d');
+    expect(photoOptions(c, null, site)[0]).toEqual({ url: img('d'), label: 'Poster' });
+    // Events never take a website picture.
+    expect(photoOptions(concert(), null, site).some((o) => o.url === site)).toBe(false);
   });
 
   it('resolvePhoto: chosen if still offered, else the first option', () => {

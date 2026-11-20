@@ -153,6 +153,8 @@ export async function collect(opts: CollectOptions, deps: CollectDeps): Promise<
 /** detailsMatchRow, tolerant of anything malformed coming back from the network. */
 function matches(d: EventDetails, row: YearPage['events'][number]): boolean {
   try {
+    // Details saved by an older bookmarklet lack the poster and website: read the page ourselves.
+    if (!Object.hasOwn(d, 'website')) return false;
     return detailsMatchRow(d, row);
   } catch {
     return false;

@@ -16,6 +16,11 @@ const cdnImage = z
   .max(300)
   .regex(/^https:\/\/lastfm(?:-img)?\.freetls\.fastly\.net\/i\/u\/ar0\/[0-9a-f]{32}(\.\w{2,5})?$/);
 
+const webUrl = z
+  .string()
+  .max(500)
+  .regex(/^https?:\/\/[^\s/?#]+[^\s]*$/, 'http(s) URL');
+
 const performer = z.object({ name: str(), url: sitePath, imageUrl: cdnImage.nullable() });
 
 const details = z.object({
@@ -24,6 +29,8 @@ const details = z.object({
   performers: z.array(performer).max(200),
   lineupTotal: z.number().int().nonnegative().nullable(),
   headerImageUrl: cdnImage.nullable(),
+  posterUrl: cdnImage.nullable().optional(),
+  website: webUrl.nullable().optional(),
   venue: z
     .object({ name: str(), street: str().nullable(), city: str().nullable(), country: str().nullable() })
     .nullable(),

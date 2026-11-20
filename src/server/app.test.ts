@@ -15,6 +15,8 @@ import { buildApp } from './app.ts';
 import { openDb } from './db.ts';
 import { createDeezer, pickPhoto } from './deezer.ts';
 import { cleanTags, createLastfm } from './lastfm.ts';
+import type { SafeGet } from './safeFetch.ts';
+import { createSiteImages } from './siteImages.ts';
 
 const win = new Window({ settings: { disableJavaScriptEvaluation: true, disableCSSFileLoading: true } });
 const parseHtml = (html: string) =>
@@ -88,10 +90,27 @@ function fakeFetch() {
   return { fn, calls };
 }
 
+/** Fake websites for safeGet: url → [content type, body]. Anything else fails like an unreachable host. */
+function fakeSites(pages: Record<string, [string, string | Buffer]> = {}) {
+  const calls: string[] = [];
+  const get: SafeGet = async (url) => {
+    calls.push(url);
+    const page = pages[url];
+    if (!page) throw new Error('unreachable');
+    return { url, contentType: page[0], body: Buffer.from(page[1]) };
+  };
+  return { get, calls };
+}
+
 async function setup({
   noKey = false,
   wrapFetch = (fn: typeof fetch) => fn,
-}: { noKey?: boolean; wrapFetch?: (fn: typeof fetch) => typeof fetch } = {}) {
+  sites = fakeSites(),
+}: {
+  noKey?: boolean;
+  wrapFetch?: (fn: typeof fetch) => typeof fetch;
+  sites?: ReturnType<typeof fakeSites>;
+} = {}) {
   const db = openDb(':memory:');
   const upstream = fakeFetch();
   const fetchFn = wrapFetch(upstream.fn);
@@ -99,10 +118,11 @@ async function setup({
     db,
     lastfm: createLastfm({ apiKey: noKey ? undefined : 'test-key', db, fetch: fetchFn }),
     deezer: createDeezer({ db, fetch: fetchFn }),
+    siteImages: createSiteImages({ db, safeGet: sites.get }),
     appUrl: 'http://localhost:5173',
     fetch: fetchFn,
   });
-  return { app, db, upstream };
+  return { app, db, upstream, sites };
 }
 
 // Parsed once: every happy-dom parse stays in `win`'s memory (~200 MB per run of the fixtures).
@@ -516,6 +536,93 @@ describe('story image', () => {
     expect(res.statusCode).toBe(200);
     expect(upstream.calls.some((c) => c.includes('evil'))).toBe(false);
   });
+});
+
+describe('festival website pictures', () => {
+  const SITE = 'https://www.grauzonefestival.nl/';
+  const OG = 'https://images.example.org/poster.jpg';
+  const grauzone = async () => {
+    const jpeg = await sharp({ create: { width: 800, height: 1000, channels: 3, background: '#335' } })
+      .jpeg()
+      .toBuffer();
+    return fakeSites({
+      [SITE]: [
+        'text/html; charset=utf-8',
+        `<html><head><meta property="og:image" content="${OG}"></head></html>`,
+      ],
+      [OG]: ['image/jpeg', jpeg],
+    });
+  };
+
+  it('are fetched once per website, for festivals of a stored result, and served from our origin', async () => {
+    const sites = await grauzone();
+    const { app } = await setup({ sites });
+    const { id } = (await app.inject({ method: 'POST', url: '/api/results', payload: { payload } })).json();
+    const res = await app.inject({ url: `/api/results/${id}/site-images` });
+    expect(res.statusCode).toBe(200);
+    const path = res.json().images[SITE] as string;
+    expect(path).toMatch(/^\/api\/site-image\/[0-9a-f]{32}\.jpg$/);
+    expect(sites.calls).toEqual([SITE, OG]);
+
+    const img = await app.inject({ url: path });
+    expect(img.statusCode).toBe(200);
+    expect(img.headers['content-type']).toBe('image/jpeg');
+    expect((await sharp(img.rawPayload).metadata()).height).toBe(1000);
+
+    await app.inject({ url: `/api/results/${id}/site-images` });
+    expect(sites.calls).toHaveLength(2); // cached
+    expect(
+      (await app.inject({ url: '/api/site-image/0123456789abcdef0123456789abcdef.jpg' })).statusCode,
+    ).toBe(404);
+    expect((await app.inject({ url: '/api/results/AAAAAAAAAA/site-images' })).statusCode).toBe(404);
+  });
+
+  it('a site without a usable picture gives null', async () => {
+    const tiny = await sharp({ create: { width: 64, height: 64, channels: 3, background: '#000' } })
+      .png()
+      .toBuffer();
+    const sites = fakeSites({
+      [SITE]: ['text/html', `<meta name="twitter:image" content="/icon.png">`],
+      'https://www.grauzonefestival.nl/icon.png': ['image/png', tiny],
+    });
+    const { app } = await setup({ sites });
+    const { id } = (await app.inject({ method: 'POST', url: '/api/results', payload: { payload } })).json();
+    expect((await app.inject({ url: `/api/results/${id}/site-images` })).json().images).toEqual({
+      [SITE]: null,
+    });
+    expect(sites.calls).toEqual([SITE, 'https://www.grauzonefestival.nl/icon.png']);
+  });
+
+  it(
+    'the story uses the website picture for a festival, chosen or automatic',
+    { timeout: 30_000 },
+    async () => {
+      const sites = await grauzone();
+      const { app } = await setup({ sites });
+      const { id } = (await app.inject({ method: 'POST', url: '/api/results', payload: { payload } })).json();
+      const fest = payload.concerts.find((c) => c.kind === 'festival' && c.details?.website)!;
+      const k = `k=${encodeURIComponent(`festival:${fest.id}`)}`;
+      const auto = await app.inject({ url: `/api/story/${id}.png?t=poster&${k}` });
+      expect(auto.statusCode).toBe(200);
+      expect(auto.headers['cache-control']).toBe('public, max-age=600'); // the photo loaded
+      expect(sites.calls).toEqual([SITE, OG]);
+
+      const path = (await app.inject({ url: `/api/results/${id}/site-images` })).json().images[
+        SITE
+      ] as string;
+      const chosen = await app.inject({
+        url: `/api/story/${id}.png?t=index&${k}&ph=${encodeURIComponent(path)}`,
+      });
+      expect(chosen.headers['cache-control']).toBe('public, max-age=600');
+
+      // Another concert cannot borrow it, and an unknown site path is ignored rather than rendered.
+      const ev = payload.concerts.find((c) => c.kind === 'event')!;
+      const other = await app.inject({
+        url: `/api/story/${id}.png?t=index&k=${encodeURIComponent(`event:${ev.id}`)}&ph=${encodeURIComponent(path)}`,
+      });
+      expect(other.statusCode).toBe(200);
+    },
+  );
 });
 
 describe('bookmarklet', () => {
