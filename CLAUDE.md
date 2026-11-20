@@ -39,7 +39,8 @@ Env: copy `.env.example` → `.env`. `LASTFM_API_KEY` is optional locally (looku
    same-origin `fetch`: year pages (`/user/{u}/events/{year}`, paginated at 30) then each event/festival page.
    Parsing lives in `src/shared/parse/` (shared so it's testable against real HTML fixtures in
    `parse/__fixtures__/`). Requests are serial with ~1.2 s pauses; **HTTP 406 is a firewall block — never
-   retry it**, stop and return a partial result with a warning; 503s are retried with backoff.
+   retry it**, stop and return a partial result with a warning; 503s are retried with backoff. Event pages
+   that other users' imports already read come from our server instead (see `event_votes` below).
 2. Result is encoded by `src/shared/codec.ts` (`"v1." + base64url(deflate-raw(JSON))`) and handed to the app
    in the **URL fragment** of `/import`, so it never hits a server log.
 3. The web app POSTs it to `/api/results` (validated by `src/shared/schema.ts`). The server returns `{id, token}`;
@@ -64,6 +65,12 @@ indexed by `PRAGMA user_version` — append, never edit existing entries.
   timestamps). Purged when not updated for `RESULT_RETENTION_DAYS` (default 400).
 - `cache`: key/value with expiry for external lookups — `lastfm:user:*` (1 day), `lastfm:tags:*` (30 days),
   `lastfm:chart:<user>:<year>` (30 days for past years, 6 h for the current one), `deezer:photo:*`.
+- `event_votes` / `event_details`: shared event details (`src/shared/sharedEvents.ts`). Each result "votes"
+  for the event details it read from last.fm itself (`sharedDetails` unset, matching its own year-page row);
+  votes cascade-delete with their result. `POST /api/events/lookup` (CORS for last.fm origins only) serves
+  details at least 2 distinct usernames agree on, and the bookmarklet skips those pages after re-checking
+  them with `detailsMatchRow`. From an http dev app URL the lookup fails (last.fm upgrades it to https) and
+  every page is read as before.
 - Data requests (About page → "Your rights"): `npm run forget -- --user=<name> [--delete]` (`src/server/forget.ts`,
   shipped in the image; see DEPLOY.md). Request logs carry no IP or username (`logRequest` in `app.ts`).
 - In-memory only (lost on restart): computed stats, rendered PNGs, downloaded photos (small LRUs in

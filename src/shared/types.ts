@@ -62,6 +62,11 @@ export interface EventDetails {
 export interface Concert extends YearPageEvent {
   /** null when the event page could not be loaded (the row data is still usable). */
   details: EventDetails | null;
+  /**
+   * true when `details` came from other users' imports (src/shared/sharedEvents.ts) instead of being
+   * read from last.fm by this import. Such details never count as a confirmation of themselves.
+   */
+  sharedDetails?: boolean;
 }
 
 /** What the bookmarklet hands to the app (via the URL fragment of /import). */

@@ -3,7 +3,6 @@ import { useLocation } from 'wouter';
 import type { Concert, ImportPayload } from '../../shared/types.ts';
 import { api, ApiError } from '../api.ts';
 import { ConcertList } from '../components/ConcertList.tsx';
-import { DiscoBall } from '../components/DiscoBall.tsx';
 import { PhotoPicker } from '../components/PhotoPicker.tsx';
 import { StatsPanel } from '../components/StatsPanel.tsx';
 import { TopPicks, type SlotView } from '../components/TopPicks.tsx';
@@ -113,7 +112,7 @@ export function Result({ id }: { id: string }) {
       </main>
     );
   }
-  if (!payload) return <DiscoBall className="loading page" label="Loading…" />;
+  if (!payload) return null;
 
   const eventsUrl = `https://www.last.fm/user/${encodeURIComponent(payload.username)}/events/${payload.year}`;
   // Only the browser that created the result holds its delete key.

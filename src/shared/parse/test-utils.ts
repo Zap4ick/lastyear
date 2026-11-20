@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { EventDetails, YearPageEvent } from '../types.ts';
 
 const FIXTURES = join(import.meta.dirname, '__fixtures__');
 
@@ -21,4 +22,21 @@ export function parseHtml(html: string): Document {
 /** Load a saved last.fm page as a Document. */
 export function loadFixture(name: string): Document {
   return parseHtml(readFixture(name));
+}
+
+/** Event details consistent with a year-page row, as its own event page would give them. */
+export function detailsFor(row: YearPageEvent, imageHash = '0'.repeat(32)): EventDetails {
+  const names = row.kind === 'event' && row.lineup.length ? row.lineup : [row.title];
+  return {
+    title: row.title,
+    date: row.date,
+    performers: names.map((name) => ({
+      name,
+      url: `/music/${encodeURIComponent(name)}`,
+      imageUrl: `https://lastfm.freetls.fastly.net/i/u/ar0/${imageHash}.jpg`,
+    })),
+    lineupTotal: names.length,
+    headerImageUrl: null,
+    venue: { name: row.venue, street: null, city: row.city, country: row.country },
+  };
 }

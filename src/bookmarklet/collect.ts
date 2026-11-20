@@ -1,6 +1,7 @@
 import { detectProblem, type PageProblem } from '../shared/parse/common.ts';
 import { parseEventPage } from '../shared/parse/event.ts';
 import { parseYearPage } from '../shared/parse/year.ts';
+import { detailsMatchRow, eventKey } from '../shared/sharedEvents.ts';
 import type { Concert, EventDetails, ImportPayload, YearPage } from '../shared/types.ts';
 
 export type Progress =
@@ -24,6 +25,11 @@ export interface CollectDeps {
   rawPages?: Map<string, string>;
   /** Parsed pages from an earlier, interrupted run: lets "Retry" resume instead of starting over. */
   cache?: Map<string, YearPage | EventDetails>;
+  /**
+   * Event details other users' imports already read (keyed by `eventKey`), from our server. Optional
+   * and best-effort: anything missing, wrong or failing is simply read from last.fm.
+   */
+  lookupShared?: (keys: string[]) => Promise<Record<string, EventDetails>>;
   signal?: AbortSignal;
 }
 
@@ -96,11 +102,29 @@ export async function collect(opts: CollectOptions, deps: CollectDeps): Promise<
   // 2. Event pages: headliner, performers with photos, venue address.
   //    Optional enrichment: the year page already has date, title, lineup and venue. If last.fm's firewall
   //    blocks us midway, stop asking and hand over what we have.
+  //    Pages other users have already read come from our server instead, when they match this user's row.
+  let shared: Record<string, EventDetails> = {};
+  const unread = past.filter((r) => !cache.has(r.url)).map(eventKey);
+  if (deps.lookupShared && unread.length) {
+    deps.onProgress?.({ phase: 'events', done: 0, total: past.length, current: '' });
+    try {
+      shared = await deps.lookupShared(unread);
+    } catch {
+      // Our server is unreachable from here: read every page from last.fm, as before.
+    }
+  }
   const concerts: Concert[] = [];
   let blocked = false;
   for (const [i, row] of past.entries()) {
+    if (deps.signal?.aborted) throw new CollectError('aborted', 'Stopped.');
     deps.onProgress?.({ phase: 'events', done: i, total: past.length, current: row.title });
     let details = (cache.get(row.url) as EventDetails | undefined) ?? null;
+    const key = eventKey(row);
+    const fromOthers = !details && Object.hasOwn(shared, key) ? shared[key] : undefined;
+    if (fromOthers && matches(fromOthers, row)) {
+      concerts.push({ ...row, details: fromOthers, sharedDetails: true });
+      continue;
+    }
     if (!details && !blocked) {
       try {
         details = parseEventPage(await fetchDoc(row.url, EVENT_RETRY_DELAYS, deps));
@@ -124,6 +148,15 @@ export async function collect(opts: CollectOptions, deps: CollectDeps): Promise<
   deps.onProgress?.({ phase: 'events', done: past.length, total: past.length, current: '' });
 
   return { v: 1, username, year, collectedAt: new Date().toISOString(), wentTo, concerts, warnings };
+}
+
+/** detailsMatchRow, tolerant of anything malformed coming back from the network. */
+function matches(d: EventDetails, row: YearPage['events'][number]): boolean {
+  try {
+    return detailsMatchRow(d, row);
+  } catch {
+    return false;
+  }
 }
 
 async function fetchDoc(path: string, delays: number[], deps: CollectDeps): Promise<Document> {

@@ -76,7 +76,7 @@ The whole state is `/data/lastyear.db` (results + lookup cache). Copy it with
 
 The About page promises to answer requests about personal data (GDPR) within a month. To see and delete
 what is held about a last.fm user (their results, whoever made them, and the cached profile and scrobble
-charts):
+charts; the shared event-detail votes of those results go with them):
 
 ```bash
 fly ssh console -C "node_modules/.bin/tsx src/server/forget.ts --user=<username>"           # list

@@ -1,4 +1,5 @@
-import type { ImportPayload } from './types.ts';
+import { eventKey } from './sharedEvents.ts';
+import type { Concert, ImportPayload } from './types.ts';
 
 const PAUSED_WARNING = /^last\.fm paused our requests/;
 
@@ -11,11 +12,13 @@ export function mergePayloads(prev: ImportPayload, next: ImportPayload): ImportP
   if (prev.username.toLowerCase() !== next.username.toLowerCase() || prev.year !== next.year) {
     throw new Error('Can only merge imports of the same user and year');
   }
-  const prevDetails = new Map(prev.concerts.map((c) => [`${c.kind}:${c.id}`, c.details]));
-  const concerts = next.concerts.map((c) => ({
-    ...c,
-    details: c.details ?? prevDetails.get(`${c.kind}:${c.id}`) ?? null,
-  }));
+  const prevByKey = new Map(prev.concerts.map((c) => [eventKey(c), c]));
+  const concerts = next.concerts.map((c): Concert => {
+    const p = c.details ? undefined : prevByKey.get(eventKey(c));
+    if (!p?.details) return c;
+    const { sharedDetails: _, ...rest } = c;
+    return { ...rest, details: p.details, ...(p.sharedDetails ? { sharedDetails: true } : {}) };
+  });
   const missing = concerts.filter((c) => !c.details).length;
   const warnings = next.warnings.filter((w) => !PAUSED_WARNING.test(w));
   if (missing && next.warnings.some((w) => PAUSED_WARNING.test(w))) {

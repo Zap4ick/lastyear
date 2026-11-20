@@ -85,6 +85,7 @@ function start() {
           onProgress: (p) => render(progressState(p, year)),
           cache,
           rawPages,
+          lookupShared,
           signal: controller.signal,
         },
       );
@@ -117,6 +118,29 @@ function start() {
     void run(); // on /user/{u}/events/{year}: nothing to ask
   } else {
     render({ kind: 'form', username, year, debug });
+  }
+}
+
+/** Event details other users' imports already read (see src/shared/sharedEvents.ts). */
+async function lookupShared(keys: string[]): Promise<Record<string, EventDetails>> {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 8000);
+  try {
+    const res = await fetch(`${__APP_URL__}/api/events/lookup`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ events: keys }),
+      credentials: 'omit',
+      referrerPolicy: 'no-referrer', // the last.fm URL would name the user
+      signal: ctl.signal,
+    });
+    if (!res.ok) return {};
+    const data = (await res.json()) as { details?: unknown };
+    return data.details && typeof data.details === 'object'
+      ? (data.details as Record<string, EventDetails>)
+      : {};
+  } finally {
+    clearTimeout(timer);
   }
 }
 

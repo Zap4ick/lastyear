@@ -17,7 +17,8 @@ export function About() {
           <dd>
             The bookmark runs in your own browser, on last.fm, and reads only your public events pages (and
             the event pages they link to) for the year you pick. It never touches your password or account
-            settings, and sends nothing anywhere until it brings you back here.
+            settings. Before reading event pages it asks us, by event number only, which of them other users
+            have already read, and skips those. It sends nothing else until it brings you back here.
           </dd>
         </div>
         <div>
@@ -64,13 +65,16 @@ export function About() {
       <section className="privacy" aria-labelledby="privacy-title">
         <h2 id="privacy-title">Privacy details</h2>
         <p>
-          Answers from the Last.fm API and Deezer are kept for up to 30 days so we don't ask twice. Photos
-          load straight from the last.fm and Deezer image servers, which see your IP address like any website
-          does. Server logs note which page or API was called and when, never your IP address or username;
-          your IP address is held briefly in memory to stop abuse and is never written to disk. The data lives
-          on a Fly.io server in Amsterdam, EU; Fly.io is a US company that hosts it for us under its data
-          processing agreement. We use it to make the story you ask for and to keep the service running and
-          safe from abuse (GDPR Art. 6(1)(b) and (f)).
+          Answers from the Last.fm API and Deezer are kept for up to 30 days so we don't ask twice. When
+          results from at least two different users read the same event page identically, its public details
+          (line-up, venue, photo links) are reused for others who went to that event, without saying whose
+          results they came from; this stops as soon as those results are deleted. Photos load straight from
+          the last.fm and Deezer image servers, which see your IP address like any website does. Server logs
+          note which page or API was called and when, never your IP address or username; your IP address is
+          held briefly in memory to stop abuse and is never written to disk. The data lives on a Fly.io server
+          in Amsterdam, EU; Fly.io is a US company that hosts it for us under its data processing agreement.
+          We use it to make the story you ask for and to keep the service running and safe from abuse (GDPR
+          Art. 6(1)(b) and (f)).
         </p>
         <p>
           You can ask what we hold about you, have it corrected or deleted, or object to it, including a

@@ -41,6 +41,7 @@ const concert = z.object({
   country: str(),
   status: str(100),
   details: details.nullable(),
+  sharedDetails: z.boolean().optional(),
 });
 
 export const importPayloadSchema = z.object({

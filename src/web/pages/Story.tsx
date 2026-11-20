@@ -85,7 +85,7 @@ export function Story({ id }: { id: string }) {
       </main>
     );
   }
-  if (!payload) return <DiscoBall className="loading page" label="Loading…" />;
+  if (!payload) return null;
 
   if (picks.length === 0) {
     return (
@@ -157,7 +157,11 @@ export function Story({ id }: { id: string }) {
             download
             aria-busy={state === 'loading'}
           >
-            {state === 'loading' ? 'Preparing image…' : `Download “${chosen.name}” PNG`}
+            {state === 'loading' ? (
+              <DiscoBall className="in-button" label="Preparing image…" />
+            ) : (
+              `Download “${chosen.name}” PNG`
+            )}
           </a>
         )}
         <p className="muted small share-hint">

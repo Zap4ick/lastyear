@@ -6,6 +6,7 @@ import fastifyStatic from '@fastify/static';
 import { z } from 'zod';
 import { mergePayloads } from '../shared/merge.ts';
 import { importPayloadSchema } from '../shared/schema.ts';
+import { EVENT_KEY } from '../shared/sharedEvents.ts';
 import type { ImportPayload } from '../shared/types.ts';
 import { buildBookmarklet, type BookmarkletBuild } from './bookmarklet.ts';
 import type { Db } from './db.ts';
@@ -31,6 +32,8 @@ const postResultBody = z.object({
   payload: importPayloadSchema,
   mergeInto: z.object({ id: z.string().max(20), token: z.string().max(100) }).optional(),
 });
+
+const eventsLookupBody = z.object({ events: z.array(z.string().regex(EVENT_KEY)).max(600) });
 
 const artistsQuery = (max: number) =>
   z.object({
@@ -82,7 +85,7 @@ export async function buildApp(deps: AppDeps) {
         existing.year === payload.year
       ) {
         const merged = mergePayloads(JSON.parse(existing.payload) as ImportPayload, payload as ImportPayload);
-        deps.db.updateResult(existing.id, JSON.stringify(merged));
+        deps.db.updateResult(existing.id, merged);
         return { id: existing.id, token: mergeInto.token, merged: true };
       }
       // Unknown id or wrong token: fall through and create a new result.
@@ -96,6 +99,7 @@ export async function buildApp(deps: AppDeps) {
       year: payload.year,
       payload: JSON.stringify(payload),
       tokenHash: hash(token),
+      votes: payload as ImportPayload,
     });
     return reply.code(201).send({ id, token, merged: false });
   });
@@ -117,6 +121,28 @@ export async function buildApp(deps: AppDeps) {
     const row = /^[A-Za-z0-9]{6,20}$/.test(req.params.id) ? deps.db.getResult(req.params.id) : undefined;
     if (!row) return reply.code(404).send({ error: 'not-found' });
     return { id: row.id, payload: JSON.parse(row.payload) as ImportPayload };
+  });
+
+  // ---- shared event details ---------------------------------------------------------------------
+
+  // Called by the bookmarklet from the user's last.fm tab (cross-origin, hence CORS for last.fm only).
+  // The request names event ids, nothing about the user; the answer holds only public event pages.
+  app.options('/api/events/lookup', async (req, reply) => {
+    allowLastfmOrigin(req, reply);
+    return reply
+      .header('Access-Control-Allow-Methods', 'POST')
+      .header('Access-Control-Allow-Headers', 'content-type')
+      .header('Access-Control-Max-Age', '86400')
+      .code(204)
+      .send();
+  });
+
+  app.post('/api/events/lookup', async (req, reply) => {
+    allowLastfmOrigin(req, reply);
+    if (!limit(req, 'events-lookup', 60, 60 * 60_000)) return tooMany(reply);
+    const body = eventsLookupBody.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'bad-query' });
+    return { details: deps.db.sharedEventDetails([...new Set(body.data.events)]) };
   });
 
   // ---- Last.fm / Deezer lookups ----------------------------------------------------------------
@@ -253,6 +279,15 @@ function lastfmFailure(e: unknown, reply: FastifyReply) {
   }
   reply.log.error(e);
   return reply.code(502).send({ error: 'upstream' });
+}
+
+/** CORS for requests from last.fm pages (the bookmarklet), and from nowhere else. */
+function allowLastfmOrigin(req: FastifyRequest, reply: FastifyReply) {
+  const origin = req.headers.origin;
+  reply.header('Vary', 'Origin');
+  if (origin && /^https:\/\/([a-z0-9-]+\.)*last\.fm$/.test(origin)) {
+    reply.header('Access-Control-Allow-Origin', origin);
+  }
 }
 
 function tooMany(reply: FastifyReply) {

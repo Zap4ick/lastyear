@@ -1,5 +1,5 @@
 /**
- * Loading indicator: a small disco ball that sways, sparkles and cycles through the story colors.
+ * Loading indicator (on the "Preparing image…" button): a small disco ball that sways, sparkles and cycles through the story colors.
  * The colors and motion are CSS (`.disco*` in styles.css); the only script is a random start for each
  * mirror tile, so they twinkle out of step.
  */

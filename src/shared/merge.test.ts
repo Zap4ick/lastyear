@@ -41,4 +41,21 @@ describe('mergePayloads', () => {
     expect(() => mergePayloads(a, { ...a, username: 'someone' })).toThrow();
     expect(() => mergePayloads(a, { ...a, year: 2025 })).toThrow();
   });
+
+  it('keeps the "shared" mark on details filled in from the old run', async () => {
+    const full = await buildFixturePayload(2026, parseHtml);
+    const first = {
+      ...full,
+      concerts: full.concerts.map((c, i) => (i < 3 ? { ...c, sharedDetails: true } : c)),
+    };
+    const merged = mergePayloads(first, withoutDetails(full, 0, 5));
+    expect(merged.concerts.map((c) => c.sharedDetails ?? false).slice(0, 6)).toEqual([
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+    ]);
+  });
 });

@@ -1,7 +1,13 @@
 // @vitest-environment node
 import { Window } from 'happy-dom';
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { DatabaseSync } from 'node:sqlite';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { buildFixturePayload } from '../shared/parse/fixture-payload.ts';
+import { detailsFor } from '../shared/parse/test-utils.ts';
+import { detailsMatchRow, eventKey } from '../shared/sharedEvents.ts';
 import type { ImportPayload } from '../shared/types.ts';
 import { TEMPLATES } from '../story/templates/index.ts';
 import { buildApp } from './app.ts';
@@ -94,9 +100,14 @@ async function setup({ noKey = false } = {}) {
   return { app, db, upstream };
 }
 
+// Parsed once: every happy-dom parse stays in `win`'s memory (~200 MB per run of the fixtures).
+let fixture: ImportPayload;
 let payload: ImportPayload;
-beforeEach(async () => {
-  payload = await buildFixturePayload(2026, parseHtml);
+beforeAll(async () => {
+  fixture = await buildFixturePayload(2026, parseHtml);
+});
+beforeEach(() => {
+  payload = structuredClone(fixture);
 });
 
 describe('results API', () => {
@@ -186,6 +197,150 @@ describe('deleting a result', () => {
     db.raw.prepare('UPDATE results SET updated_at = ? WHERE id = ?').run('2020-01-01T00:00:00.000Z', id);
     expect(db.purgeOldResults(400)).toBe(1);
     expect(db.getResult(id)).toBeUndefined();
+  });
+});
+
+describe('shared event details', () => {
+  /** An import whose event details match its rows, as a real run would produce. */
+  const consistent = (username: string, imageHash?: string): ImportPayload => ({
+    ...payload,
+    username,
+    concerts: payload.concerts.map((c) => ({ ...c, details: detailsFor(c, imageHash) })),
+  });
+  const post = (app: Awaited<ReturnType<typeof setup>>['app'], p: ImportPayload) =>
+    app.inject({ method: 'POST', url: '/api/results', payload: { payload: p } }).then((r) => r.json());
+  const lookup = async (
+    app: Awaited<ReturnType<typeof setup>>['app'],
+    keys = payload.concerts.map(eventKey),
+  ) =>
+    (
+      await app.inject({
+        method: 'POST',
+        url: '/api/events/lookup',
+        headers: { origin: 'https://www.last.fm' },
+        payload: { events: keys },
+      })
+    ).json().details as Record<string, unknown>;
+
+  it('serves details once two different users read them identically', async () => {
+    const { app } = await setup();
+    await post(app, consistent('demo123'));
+    await post(app, consistent('DEMO123')); // the same user again is not a second opinion
+    expect(await lookup(app)).toEqual({});
+    await post(app, consistent('otheruser01'));
+    const got = await lookup(app);
+    expect(Object.keys(got)).toHaveLength(payload.concerts.length);
+    const first = payload.concerts[0]!;
+    expect(got[eventKey(first)]).toEqual(detailsFor(first));
+  });
+
+  it('the version most users read wins; a tie gives nothing', async () => {
+    const { app } = await setup();
+    const other = 'f'.repeat(32);
+    await post(app, consistent('user-a'));
+    await post(app, consistent('user-b'));
+    await post(app, consistent('user-c', other));
+    await post(app, consistent('user-d', other));
+    expect(await lookup(app)).toEqual({});
+    await post(app, consistent('user-e', other));
+    const first = payload.concerts[0]!;
+    expect((await lookup(app))[eventKey(first)]).toEqual(detailsFor(first, other));
+  });
+
+  it('details that do not match their row, or came from the shared pool, are no vote', async () => {
+    const { app } = await setup();
+    // Fixture details rotate through a few real event pages, so most belong to other events.
+    await post(app, { ...payload, username: 'user-a' });
+    await post(app, { ...payload, username: 'user-b' });
+    const genuine = payload.concerts.filter((c) => c.details && detailsMatchRow(c.details, c));
+    expect(genuine.length).toBeLessThan(payload.concerts.length / 2);
+    expect(Object.keys(await lookup(app)).sort()).toEqual(genuine.map(eventKey).sort());
+
+    const fresh = (await setup()).app;
+    const shared = (u: string) => ({
+      ...consistent(u),
+      concerts: consistent(u).concerts.map((c) => ({ ...c, sharedDetails: true })),
+    });
+    await post(fresh, shared('user-c'));
+    await post(fresh, shared('user-d'));
+    expect(await lookup(fresh)).toEqual({});
+  });
+
+  it('votes go with their results: deleted, forgotten, merged', async () => {
+    const { app, db } = await setup();
+    const a = await post(app, consistent('user-a'));
+    await post(app, consistent('user-b'));
+    expect(Object.keys(await lookup(app)).length).toBeGreaterThan(0);
+
+    db.forgetUser('user-b');
+    expect(await lookup(app)).toEqual({});
+    db.purgeExpired();
+    expect(db.raw.prepare('SELECT COUNT(*) AS n FROM event_details').get()).toEqual({
+      n: payload.concerts.length,
+    });
+
+    await post(app, consistent('user-b'));
+    await app.inject({
+      method: 'POST',
+      url: '/api/results',
+      payload: { payload: { ...consistent('user-a'), concerts: [] }, mergeInto: a },
+    });
+    expect(await lookup(app)).toEqual({}); // user-a's re-import lists no concerts any more
+
+    db.forgetUser('user-a');
+    db.forgetUser('user-b');
+    db.purgeExpired();
+    expect(db.raw.prepare('SELECT COUNT(*) AS n FROM event_details').get()).toEqual({ n: 0 });
+  });
+
+  it('CORS for last.fm pages only; bad input is refused', async () => {
+    const { app } = await setup();
+    const pre = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/events/lookup',
+      headers: { origin: 'https://www.last.fm', 'access-control-request-method': 'POST' },
+    });
+    expect(pre.statusCode).toBe(204);
+    expect(pre.headers['access-control-allow-origin']).toBe('https://www.last.fm');
+    expect(pre.headers['access-control-allow-headers']).toBe('content-type');
+    const evil = await app.inject({
+      method: 'POST',
+      url: '/api/events/lookup',
+      headers: { origin: 'https://notlast.fm.example' },
+      payload: { events: ['event:1'] },
+    });
+    expect(evil.headers['access-control-allow-origin']).toBeUndefined();
+    const bad = await app.inject({
+      method: 'POST',
+      url: '/api/events/lookup',
+      payload: { events: ['event:1', '../etc'] },
+    });
+    expect(bad.statusCode).toBe(400);
+  });
+
+  it('results stored before the upgrade vote too', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lastyear-'));
+    try {
+      const path = join(dir, 'old.db');
+      const old = new DatabaseSync(path);
+      old.exec(`CREATE TABLE results (id TEXT PRIMARY KEY, username TEXT NOT NULL, year INTEGER NOT NULL,
+                  payload TEXT NOT NULL, token_hash TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+                CREATE TABLE cache (key TEXT PRIMARY KEY, value TEXT NOT NULL, expires_at INTEGER NOT NULL);
+                PRAGMA user_version = 1;`);
+      const add = old.prepare('INSERT INTO results VALUES (?, ?, 2026, ?, ?, ?, ?)');
+      const now = new Date().toISOString();
+      add.run('aaaaaa', 'user-a', JSON.stringify(consistent('user-a')), 'x', now, now);
+      add.run('bbbbbb', 'user-b', JSON.stringify(consistent('user-b')), 'x', now, now);
+      add.run('cccccc', 'user-c', '{}', 'x', now, now);
+      old.close();
+      const db = openDb(path);
+      expect(Object.keys(db.sharedEventDetails(payload.concerts.map(eventKey)))).toHaveLength(
+        payload.concerts.length,
+      );
+      db.close();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

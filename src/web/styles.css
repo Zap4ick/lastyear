@@ -93,11 +93,6 @@ p {
   padding: 10px 12px;
   font-size: 14px;
 }
-.loading {
-  color: var(--muted);
-  text-align: center;
-  padding-top: 20vh;
-}
 .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -771,6 +766,25 @@ button.event.picked .title {
   color: var(--muted);
   font-size: 14px;
 }
+/* Inside a red button: in a row, white string, and no red in the color cycle. */
+.disco.in-button {
+  display: inline-flex;
+  flex-direction: row;
+  vertical-align: middle;
+  gap: 8px;
+}
+.in-button .disco-ball {
+  animation:
+    disco-swing 1.4s ease-in-out infinite alternate,
+    disco-colors-on-accent 4.5s linear infinite;
+}
+.in-button .disco-string {
+  stroke: var(--accent-ink);
+}
+.in-button .disco-label {
+  color: inherit;
+  font-size: inherit;
+}
 .sr-only {
   position: absolute;
   width: 1px;
@@ -802,6 +816,18 @@ button.event.picked .title {
     color: #6b3df0;
   }
 }
+@keyframes disco-colors-on-accent {
+  0%,
+  100% {
+    color: #ffd400;
+  }
+  33% {
+    color: #ff4fa3;
+  }
+  66% {
+    color: #6b3df0;
+  }
+}
 @keyframes disco-twinkle {
   0%,
   100% {
@@ -824,6 +850,9 @@ button.event.picked .title {
 @media (prefers-reduced-motion: reduce) {
   .disco-ball {
     animation: disco-colors 6s linear infinite;
+  }
+  .in-button .disco-ball {
+    animation: disco-colors-on-accent 4.5s linear infinite;
   }
   .disco-tile,
   .disco-sparkle {

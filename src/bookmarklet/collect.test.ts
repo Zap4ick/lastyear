@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { parseHtml, readFixture } from '../shared/parse/test-utils.ts';
+import { detailsFor, parseHtml, readFixture } from '../shared/parse/test-utils.ts';
+import { eventKey } from '../shared/sharedEvents.ts';
 import type { EventDetails, YearPage } from '../shared/types.ts';
 import { collect, CollectError, type CollectDeps, type Progress } from './collect.ts';
 
@@ -165,5 +166,33 @@ describe('collect', () => {
     expect(rawPages.has('/user/demo123/events/2026 [600 #1]')).toBe(true);
     expect(rawPages.has('/user/demo123/events/2026')).toBe(true);
     expect(rawPages.size).toBe(2 + 25);
+  });
+
+  it("takes event details other users already read, when they match the user's own rows", async () => {
+    const opts = { username: 'demo123', year: 2026, today: '2026-11-19' };
+    const rows = (await collect(opts, fakeLastfm().deps)).concerts;
+    const shared = Object.fromEntries(rows.slice(0, 10).map((r) => [eventKey(r), detailsFor(r)]));
+    shared[eventKey(rows[10]!)] = { ...detailsFor(rows[10]!), date: '1999-01-01' }; // not this event
+
+    const { deps, requests } = fakeLastfm();
+    const asked: string[][] = [];
+    deps.lookupShared = async (keys) => (asked.push(keys), shared);
+    const result = await collect(opts, deps);
+    expect(asked).toEqual([rows.map(eventKey)]);
+    expect(requests).toHaveLength(1 + 25 - 10);
+    expect(result.concerts.slice(0, 10).every((c) => c.sharedDetails && c.details)).toBe(true);
+    expect(result.concerts[10]!.sharedDetails).toBeUndefined();
+    expect(result.concerts[10]!.details?.date).not.toBe('1999-01-01');
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('reads every page from last.fm when the shared lookup fails', async () => {
+    const { deps, requests } = fakeLastfm();
+    deps.lookupShared = async () => {
+      throw new TypeError('Failed to fetch');
+    };
+    const result = await collect({ username: 'demo123', year: 2026, today: '2026-11-19' }, deps);
+    expect(requests).toHaveLength(1 + 25);
+    expect(result.concerts.every((c) => c.details && !c.sharedDetails)).toBe(true);
   });
 });
