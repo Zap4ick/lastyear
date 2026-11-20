@@ -737,10 +737,10 @@ button.event.picked .title {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 .disco-ball {
-  width: 56px;
+  width: 19px;
   height: auto;
   overflow: visible;
   color: #d51007;
@@ -751,7 +751,7 @@ button.event.picked .title {
 }
 .disco-string {
   stroke: var(--muted);
-  stroke-width: 1.5;
+  stroke-width: 3;
 }
 .disco-tile {
   fill: #fff;
@@ -770,18 +770,6 @@ button.event.picked .title {
 .disco-label {
   color: var(--muted);
   font-size: 14px;
-}
-.design-frame {
-  position: relative;
-  display: block;
-}
-.design-loading {
-  position: absolute;
-  inset: 0;
-  justify-content: center;
-}
-.design-loading .disco-ball {
-  width: 44px;
 }
 .sr-only {
   position: absolute;

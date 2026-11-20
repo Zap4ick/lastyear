@@ -122,10 +122,12 @@ export function Story({ id }: { id: string }) {
               aria-pressed={t.id === template}
               onClick={() => choose(t.id)}
             >
-              <StoryPreview
+              <img
                 key={storyUrl(id, t.id, picks)}
                 src={storyUrl(id, t.id, picks)}
                 alt={`${t.name} story preview`}
+                width={1080}
+                height={1920}
               />
               <span className="design-name">{t.name}</span>
               <span className="muted small">{t.description}</span>
@@ -166,26 +168,5 @@ export function Story({ id }: { id: string }) {
         </p>
       </div>
     </main>
-  );
-}
-
-/** A rendered story preview, with the disco ball spinning until the PNG arrives (renders take seconds). */
-function StoryPreview({ src, alt }: { src: string; alt: string }) {
-  const [done, setDone] = useState(false);
-  return (
-    <span className="design-frame">
-      <img
-        src={src}
-        alt={alt}
-        width={1080}
-        height={1920}
-        ref={(img) => {
-          if (img?.complete && img.naturalWidth) setDone(true); // already cached
-        }}
-        onLoad={() => setDone(true)}
-        onError={() => setDone(true)}
-      />
-      {!done && <DiscoBall className="design-loading" label="Rendering…" />}
-    </span>
   );
 }
