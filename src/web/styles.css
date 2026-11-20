@@ -521,6 +521,9 @@ button.link:disabled {
   margin: 8px 0 4px;
   min-height: 1.5em;
 }
+.hint-line {
+  display: block;
+}
 .hint.show {
   color: var(--accent);
   font-weight: 600;
@@ -706,4 +709,115 @@ button.event.picked .title {
 }
 .about dd {
   color: var(--text);
+}
+
+/* Loading: a disco ball (components/DiscoBall.tsx) in the story colors. */
+.disco {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.disco-ball {
+  width: 56px;
+  height: auto;
+  overflow: visible;
+  color: #d51007;
+  transform-origin: 50% 0;
+  animation:
+    disco-swing 1.4s ease-in-out infinite alternate,
+    disco-colors 6s linear infinite;
+}
+.disco-string {
+  stroke: var(--muted);
+  stroke-width: 1.5;
+}
+.disco-tile {
+  fill: #fff;
+  opacity: 0.1;
+  animation: disco-twinkle 1.8s ease-in-out infinite;
+}
+.disco-sparkle {
+  fill: currentColor;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: disco-sparkle 1.2s ease-in-out infinite alternate;
+}
+.disco-sparkle.late {
+  animation-delay: -0.6s;
+}
+.disco-label {
+  color: var(--muted);
+  font-size: 14px;
+}
+.design-frame {
+  position: relative;
+  display: block;
+}
+.design-loading {
+  position: absolute;
+  inset: 0;
+  justify-content: center;
+}
+.design-loading .disco-ball {
+  width: 44px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@keyframes disco-swing {
+  from {
+    transform: rotate(-7deg);
+  }
+  to {
+    transform: rotate(7deg);
+  }
+}
+@keyframes disco-colors {
+  0%,
+  100% {
+    color: #d51007;
+  }
+  25% {
+    color: #ffd400;
+  }
+  50% {
+    color: #ff4fa3;
+  }
+  75% {
+    color: #6b3df0;
+  }
+}
+@keyframes disco-twinkle {
+  0%,
+  100% {
+    opacity: 0.08;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+@keyframes disco-sparkle {
+  from {
+    opacity: 0.2;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .disco-ball {
+    animation: disco-colors 6s linear infinite;
+  }
+  .disco-tile,
+  .disco-sparkle {
+    animation: none;
+  }
 }

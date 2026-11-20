@@ -97,7 +97,7 @@ export function createLastfm(opts: { apiKey: string | undefined; db: Db; fetch?:
       url.searchParams.set(k, v);
     }
     const res = await doFetch(url, {
-      headers: { 'User-Agent': 'lastfmyear/0.1' },
+      headers: { 'User-Agent': 'lastyear/0.1' },
       signal: AbortSignal.timeout(8000),
     });
     const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;

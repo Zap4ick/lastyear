@@ -1,7 +1,7 @@
-# lastfmyear: one container serving the web app, the API and the story renderer.
-# Build: docker build -t lastfmyear .
-# Run:   docker run -p 8787:8787 -v lastfmyear-data:/data \
-#          -e APP_URL=https://your.domain -e LASTFM_API_KEY=… lastfmyear
+# lastyear: one container serving the web app, the API and the story renderer.
+# Build: docker build -t lastyear .
+# Run:   docker run -p 8787:8787 -v lastyear-data:/data \
+#          -e APP_URL=https://your.domain -e LASTFM_API_KEY=… lastyear
 
 FROM node:26-slim AS build
 WORKDIR /app
@@ -13,7 +13,7 @@ RUN npm run build
 FROM node:26-slim
 ENV NODE_ENV=production \
     API_PORT=8787 \
-    DB_PATH=/data/lastfmyear.db
+    DB_PATH=/data/lastyear.db
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force

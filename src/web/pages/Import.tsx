@@ -3,6 +3,7 @@ import { useLocation } from 'wouter';
 import { decodePayload } from '../../shared/codec.ts';
 import { parseImportPayload } from '../../shared/schema.ts';
 import { api } from '../api.ts';
+import { DiscoBall } from '../components/DiscoBall.tsx';
 import { rememberResult, savedResult } from '../storage.ts';
 
 /** Landing spot of the bookmarklet: /import#v1.<payload>. Saves the result and moves on to /r/:id. */
@@ -43,7 +44,7 @@ export function Import() {
           </p>
         </div>
       ) : (
-        <p className="loading">Saving your concerts…</p>
+        <DiscoBall className="loading" label="Saving your concerts…" />
       )}
     </main>
   );

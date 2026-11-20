@@ -135,6 +135,7 @@ function Placeholder({ name, width, height }: { name: string; width: number; hei
 }
 
 export const indexList: StoryTemplate = {
+  credit: { left: X, color: GREY, fontFamily: MONO, fontSize: 20, letterSpacing: 2, uppercase: true },
   id: 'index',
   name: 'Index',
   description: 'Light paper, big red year, a ruled list',

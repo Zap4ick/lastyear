@@ -33,6 +33,8 @@ const withTimeout = <T>(p: Promise<T>, ms: number): Promise<T | undefined> =>
   Promise.race([p.catch(() => undefined), new Promise<undefined>((r) => setTimeout(r, ms))]);
 
 export function registerStoryRoutes(app: FastifyInstance, deps: AppDeps, limit: Limiter) {
+  // "made with <host>" on every story: the public host, or the default name while developing locally.
+  const credit = deps.appUrl.startsWith('https://') ? new URL(deps.appUrl).host : undefined;
   const statsCache = new Map<string, Promise<Stats>>();
   const pngCache = new Map<string, Buffer>();
 
@@ -84,7 +86,7 @@ export function registerStoryRoutes(app: FastifyInstance, deps: AppDeps, limit: 
         }),
       );
       const stats = await statsFor(row.id, row.updated_at, payload);
-      png = await renderStory(template, buildStoryData(payload, picks, stats), { fetch: deps.fetch });
+      png = await renderStory(template, buildStoryData(payload, picks, stats), { fetch: deps.fetch, credit });
       pngCache.set(cacheKey, png);
       if (pngCache.size > 40) pngCache.delete(pngCache.keys().next().value!);
     }
@@ -93,7 +95,7 @@ export function registerStoryRoutes(app: FastifyInstance, deps: AppDeps, limit: 
     if (q.data.download) {
       reply.header(
         'Content-Disposition',
-        `attachment; filename="lastfmyear-${payload.username}-${payload.year}-${template.id}.png"`,
+        `attachment; filename="lastyear-${payload.username}-${payload.year}-${template.id}.png"`,
       );
     }
     return reply.send(png);

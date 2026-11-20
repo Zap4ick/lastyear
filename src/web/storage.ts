@@ -3,7 +3,7 @@
  * last.fm paused our requests) can be merged into the same result. Storage may be unavailable
  * (private mode, blocked site data): everything degrades to "no memory".
  */
-const KEY = 'lastfmyear:results';
+const KEY = 'lastyear:results';
 
 type Saved = Record<string, { id: string; token: string }>;
 
@@ -41,7 +41,7 @@ export function forgetResult(username: string, year: number) {
 
 export function lastUsername(): string {
   try {
-    return localStorage.getItem('lastfmyear:username') ?? '';
+    return localStorage.getItem('lastyear:username') ?? '';
   } catch {
     return '';
   }
@@ -49,8 +49,21 @@ export function lastUsername(): string {
 
 export function rememberUsername(name: string) {
   try {
-    localStorage.setItem('lastfmyear:username', name);
+    localStorage.setItem('lastyear:username', name);
   } catch {
     /* ignore */
+  }
+}
+
+/** The app used to be called lastfmyear: move its saved results, picks and settings to the new keys. */
+export function migrateStorage() {
+  try {
+    for (const old of Object.keys(localStorage).filter((k) => k.startsWith('lastfmyear:'))) {
+      const key = 'lastyear:' + old.slice('lastfmyear:'.length);
+      if (localStorage.getItem(key) === null) localStorage.setItem(key, localStorage.getItem(old)!);
+      localStorage.removeItem(old);
+    }
+  } catch {
+    /* storage unavailable */
   }
 }

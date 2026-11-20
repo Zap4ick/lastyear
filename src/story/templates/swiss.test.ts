@@ -2,7 +2,7 @@ import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
 import { renderStory } from '../../server/render.ts';
 import type { StoryConcert, StoryData } from '../data.ts';
-import { SAFE_BOTTOM, SAFE_TOP, W } from '../template.ts';
+import { CREDIT_TOP, SAFE_BOTTOM, SAFE_TOP, W } from '../template.ts';
 import { swiss, swissLayout } from './swiss.tsx';
 
 const concert = (rank: number, name: string): StoryConcert => ({
@@ -74,14 +74,14 @@ describe('swissLayout', () => {
   });
 });
 
-/** Rows and columns that hold any ink (anything darker than near-white). */
-async function inkBounds(png: Buffer) {
+/** Rows and columns that hold any ink (anything darker than near-white), in rows `from`…`to`. */
+async function inkBounds(png: Buffer, from = 0, to = Infinity) {
   const { data, info } = await sharp(png).greyscale().raw().toBuffer({ resolveWithObject: true });
   let top = info.height,
     bottom = 0,
     left = info.width,
     right = 0;
-  for (let y = 0; y < info.height; y++)
+  for (let y = from; y < Math.min(to, info.height); y++)
     for (let x = 0; x < info.width; x++)
       if (data[y * info.width + x]! < 240) {
         top = Math.min(top, y);
@@ -100,10 +100,14 @@ describe('swiss render', () => {
     ['one very long, 4 facts', story([LONG])],
     ['three short, year 2008', story(['Rome', 'Kwoon', 'Ditz'], 4, 2008)],
   ])('%s: all ink inside the safe area and the side margins', async (_label, d) => {
-    const ink = await inkBounds(await renderStory(swiss, d));
+    const png = await renderStory(swiss, d);
+    const ink = await inkBounds(png, 0, CREDIT_TOP); // the story, without the "made with" line
     expect(ink.top).toBeGreaterThanOrEqual(SAFE_TOP);
     expect(ink.bottom).toBeLessThanOrEqual(SAFE_BOTTOM);
     expect(ink.left).toBeGreaterThanOrEqual(72 - 2);
     expect(ink.right).toBeLessThanOrEqual(W - 72 + 2);
+    const credit = await inkBounds(png, CREDIT_TOP);
+    expect(credit.bottom).toBeLessThan(CREDIT_TOP + 40);
+    expect(credit.left).toBeGreaterThanOrEqual(72 - 2);
   });
 });

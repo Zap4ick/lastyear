@@ -135,6 +135,7 @@ function Placeholder({ name, width, height }: { name: string; width: number; hei
 }
 
 export const swiss: StoryTemplate = {
+  credit: { left: X, color: '#8e8e8e', fontFamily: HELVETICA, fontSize: 24 },
   id: 'swiss',
   name: 'Swiss',
   description: 'White, Helvetica, strict grid',

@@ -13,14 +13,14 @@ declare const __APP_URL__: string;
 interface Instance {
   show(): void;
 }
-const w = window as unknown as { __lastfmyear?: Instance };
+const w = window as unknown as { __lastyear?: Instance };
 
 function start() {
   if (!/(^|\.)last\.fm$/.test(location.hostname)) {
     if (confirm('This button works on last.fm. Open last.fm now?')) location.href = 'https://www.last.fm/';
     return;
   }
-  if (w.__lastfmyear) return w.__lastfmyear.show(); // tapped twice
+  if (w.__lastyear) return w.__lastyear.show(); // tapped twice
 
   const fromUrl = location.pathname.match(/^\/user\/([^/]+)(?:\/events\/(\d{4}))?/);
   const now = new Date();
@@ -57,11 +57,11 @@ function start() {
     onClose: () => {
       controller?.abort();
       overlay.remove();
-      delete w.__lastfmyear;
+      delete w.__lastyear;
     },
   });
   const render = (s: OverlayState) => overlay.render(s);
-  w.__lastfmyear = { show: () => render({ kind: 'form', username, year, debug }) };
+  w.__lastyear = { show: () => render({ kind: 'form', username, year, debug }) };
 
   async function run() {
     controller?.abort();
@@ -163,7 +163,7 @@ function downloadDebug(username: string, year: number, pages: Map<string, string
   const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
   const a = Object.assign(document.createElement('a'), {
     href: url,
-    download: `lastfmyear-debug-${username}-${year}.json`,
+    download: `lastyear-debug-${username}-${year}.json`,
   });
   document.body.append(a);
   a.click();

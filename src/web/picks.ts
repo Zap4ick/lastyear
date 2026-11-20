@@ -46,7 +46,7 @@ export function sanitizePicks(raw: unknown, validKeys: Set<string>, max = MAX_PI
   return out;
 }
 
-const storageKey = (resultId: string) => `lastfmyear:picks:${resultId}`;
+const storageKey = (resultId: string) => `lastyear:picks:${resultId}`;
 
 export function loadPicks(resultId: string, validKeys: Set<string>, max = MAX_PICKS): Pick[] {
   try {

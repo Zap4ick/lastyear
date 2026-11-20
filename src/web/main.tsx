@@ -6,6 +6,7 @@ import { Home } from './pages/Home.tsx';
 import { Import } from './pages/Import.tsx';
 import { Result } from './pages/Result.tsx';
 import { Story } from './pages/Story.tsx';
+import { migrateStorage } from './storage.ts';
 import './styles.css';
 
 function NotFound() {
@@ -18,6 +19,8 @@ function NotFound() {
     </main>
   );
 }
+
+migrateStorage();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

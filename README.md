@@ -1,4 +1,4 @@
-# lastfmyear
+# lastyear
 
 Your year of concerts from last.fm, turned into an Instagram story.
 

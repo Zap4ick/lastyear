@@ -8,6 +8,9 @@ them in sync). The browser never imports template code.
 
 - `W`×`H` = 1080×1920. Instagram's UI covers about the top 250 px and the bottom 340 px: keep all
   text between `SAFE_TOP` and `SAFE_BOTTOM` (`template.ts`). Photos and shapes may bleed.
+- The renderer adds "made with lastyear.fly.dev" (the public host) at `CREDIT_TOP`, just under
+  `SAFE_BOTTOM`, at the template's `credit.left`. Each template sets the `credit` style (font, quiet
+  color, optional label `background` if its decoration can run under the line). Keep that strip clear.
 - Every template with a computed layout has a test asserting its content ends above `SAFE_BOTTOM`
   for short names, very long names, Cyrillic, and 1/2/3 picks (see `templates/swiss.test.ts`).
 

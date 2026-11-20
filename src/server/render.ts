@@ -3,11 +3,12 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { Resvg } from '@resvg/resvg-js';
+import { createElement, type ReactElement } from 'react';
 import satori from 'satori';
 import sharp from 'sharp';
 import type { StoryData } from '../story/data.ts';
 import { FONT_FILES, SUBSETS } from '../story/fonts.ts';
-import { H, W, type PhotoSpec, type StoryTemplate } from '../story/template.ts';
+import { CREDIT_TOP, DEFAULT_CREDIT, H, W, type PhotoSpec, type StoryTemplate } from '../story/template.ts';
 
 const require = createRequire(import.meta.url);
 
@@ -110,10 +111,46 @@ async function preparePhoto(url: string, spec: PhotoSpec, fetchImpl: typeof fetc
   return `data:image/jpeg;base64,${out.toString('base64')}`;
 }
 
+/** The page: the template's design plus the "made with …" line under it. */
+export function storyPage(
+  template: StoryTemplate,
+  data: StoryData,
+  photos: (string | null)[],
+  credit = DEFAULT_CREDIT,
+): ReactElement {
+  const c = template.credit;
+  const fontSize = c.fontSize ?? 24;
+  return createElement(
+    'div',
+    { style: { display: 'flex', position: 'relative', width: W, height: H } },
+    template.render(data, photos),
+    createElement(
+      'div',
+      {
+        style: {
+          display: 'flex',
+          position: 'absolute',
+          left: c.left,
+          top: CREDIT_TOP,
+          fontFamily: c.fontFamily,
+          fontSize,
+          lineHeight: 1.2,
+          fontWeight: c.fontWeight ?? 400,
+          letterSpacing: c.letterSpacing ?? 0,
+          color: c.color,
+          whiteSpace: 'nowrap',
+          ...(c.background ? { background: c.background, padding: '4px 10px', marginLeft: -10 } : {}),
+        },
+      },
+      c.uppercase ? `MADE WITH ${credit.toUpperCase()}` : `made with ${credit}`,
+    ),
+  );
+}
+
 export async function renderStory(
   template: StoryTemplate,
   data: StoryData,
-  opts: { fetch?: typeof fetch } = {},
+  opts: { fetch?: typeof fetch; credit?: string } = {},
 ): Promise<Buffer> {
   const fetchImpl = opts.fetch ?? fetch;
   const [fonts, photos] = await Promise.all([
@@ -124,6 +161,6 @@ export async function renderStory(
       ),
     ),
   ]);
-  const svg = await satori(template.render(data, photos), { width: W, height: H, fonts });
+  const svg = await satori(storyPage(template, data, photos, opts.credit), { width: W, height: H, fonts });
   return new Resvg(svg, { fitTo: { mode: 'width', value: W } }).render().asPng();
 }

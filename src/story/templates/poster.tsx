@@ -109,6 +109,7 @@ function Tag({ n, size, bg }: { n: number; size: number; bg: string }) {
 const pct = (y: number) => `${((100 * y) / H).toFixed(1)}%`;
 
 export const poster: StoryTemplate = {
+  credit: { left: X, color: '#9c9c9c', fontFamily: HELVETICA, fontSize: 24 },
   id: 'poster',
   name: 'Poster',
   description: 'Your #1 full-screen, Helvetica on top',

@@ -1,4 +1,4 @@
-# Deploying lastfmyear
+# Deploying lastyear
 
 One container (`Dockerfile`) serves the web app, the API, the bookmarklet and the story renderer.
 State is a single SQLite file on a volume at `/data`.
@@ -13,13 +13,13 @@ State is a single SQLite file on a volume at `/data`.
 
 ## Environment
 
-| Variable | Required | Notes |
-|---|---|---|
-| `APP_URL` | yes | Public https URL, no trailing slash. The bookmarklet is built for it. |
-| `LASTFM_API_KEY` | yes | Free, https://www.last.fm/api/account/create. Without it, no username check, genres or scrobbles. |
-| `DB_PATH` | no | Default `/data/lastfmyear.db` in the image. |
-| `RESULT_RETENTION_DAYS` | no | Results not re-imported for this long are deleted. Default 400. |
-| `API_PORT` | no | Default 8787. |
+| Variable                | Required | Notes                                                                                             |
+| ----------------------- | -------- | ------------------------------------------------------------------------------------------------- |
+| `APP_URL`               | yes      | Public https URL, no trailing slash. The bookmarklet is built for it.                             |
+| `LASTFM_API_KEY`        | yes      | Free, https://www.last.fm/api/account/create. Without it, no username check, genres or scrobbles. |
+| `DB_PATH`               | no       | Default `/data/lastyear.db` in the image.                                                         |
+| `RESULT_RETENTION_DAYS` | no       | Results not re-imported for this long are deleted. Default 400.                                   |
+| `API_PORT`              | no       | Default 8787.                                                                                     |
 
 ## Option A: Fly.io
 
@@ -69,5 +69,5 @@ your.domain {
 
 ## Backups
 
-The whole state is `/data/lastfmyear.db` (results + lookup cache). Copy it with
-`sqlite3 /data/lastfmyear.db ".backup /data/backup.db"` (safe while running).
+The whole state is `/data/lastyear.db` (results + lookup cache). Copy it with
+`sqlite3 /data/lastyear.db ".backup /data/backup.db"` (safe while running).

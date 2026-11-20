@@ -1,4 +1,5 @@
-import { join } from 'node:path';
+import { existsSync, renameSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { buildApp } from './app.ts';
 import { openDb } from './db.ts';
 import { createDeezer } from './deezer.ts';
@@ -22,7 +23,15 @@ if (production && !appUrl.startsWith('https://')) {
   process.exit(1);
 }
 
-const db = openDb(env.DB_PATH ?? 'data/lastfmyear.db');
+const dbPath = env.DB_PATH ?? 'data/lastyear.db';
+// The app used to be called lastfmyear: take over its database file (with its WAL) on first start.
+const oldDbPath = join(dirname(dbPath), 'lastfmyear.db');
+if (!existsSync(dbPath) && existsSync(oldDbPath)) {
+  for (const ext of ['', '-wal', '-shm']) {
+    if (existsSync(oldDbPath + ext)) renameSync(oldDbPath + ext, dbPath + ext);
+  }
+}
+const db = openDb(dbPath);
 
 const app = await buildApp({
   db,

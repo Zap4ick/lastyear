@@ -278,9 +278,7 @@ describe('story image', () => {
       expect(res.rawPayload.subarray(1, 4).toString()).toBe('PNG');
     }
     const dl = await app.inject({ url: `/api/story/${id}.png?t=index&${keys[0]}&download=1` });
-    expect(dl.headers['content-disposition']).toBe(
-      'attachment; filename="lastfmyear-demo123-2026-index.png"',
-    );
+    expect(dl.headers['content-disposition']).toBe('attachment; filename="lastyear-demo123-2026-index.png"');
   });
 
   it('rejects bad input', async () => {

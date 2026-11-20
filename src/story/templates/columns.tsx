@@ -113,6 +113,14 @@ function Placeholder({ name, width, height }: { name: string; width: number; hei
 }
 
 export const columns: StoryTemplate = {
+  credit: {
+    left: X,
+    color: 'rgba(255, 255, 255, 0.72)',
+    fontFamily: MONO,
+    fontSize: 20,
+    letterSpacing: 2,
+    uppercase: true,
+  },
   id: 'columns',
   name: 'Columns',
   description: 'Last.fm red, three tall b/w columns',

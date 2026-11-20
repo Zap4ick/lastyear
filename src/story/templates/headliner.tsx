@@ -210,6 +210,7 @@ function Thumb({ c, src }: { c: StoryConcert; src: string | null }) {
 }
 
 export const headliner: StoryTemplate = {
+  credit: { left: X, color: '#8a8a8a', fontFamily: MONO, fontSize: 20, letterSpacing: 3, uppercase: true },
   id: 'headliner',
   name: 'Headliner',
   description: 'Your #1 as a full-bleed poster, the rest below',

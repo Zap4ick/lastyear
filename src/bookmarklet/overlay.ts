@@ -70,12 +70,12 @@ export class Overlay {
   private body: HTMLElement;
 
   constructor(private handlers: OverlayHandlers) {
-    this.host.id = 'lastfmyear-overlay';
+    this.host.id = 'lastyear-overlay';
     const style = document.createElement('style');
     style.textContent = CSS;
     const card = document.createElement('div');
     card.className = 'card';
-    card.innerHTML = `<div class="head"><span class="brand" title="lastfmyear: independent, not part of Last.fm">lastfmyear</span><button class="x" aria-label="Close">×</button></div><div class="body"></div>`;
+    card.innerHTML = `<div class="head"><span class="brand" title="lastyear: independent, not part of Last.fm">lastyear</span><button class="x" aria-label="Close">×</button></div><div class="body"></div>`;
     card.querySelector('.x')!.addEventListener('click', () => handlers.onClose());
     this.body = card.querySelector('.body')!;
     this.root.append(style, card);
@@ -93,7 +93,7 @@ export class Overlay {
       case 'form': {
         b.append(
           el('h2', {}, 'Your concerts of the year'),
-          el('p', { class: 'muted' }, 'Reads your public events page on last.fm, then opens lastfmyear.'),
+          el('p', { class: 'muted' }, 'Reads your public events page on last.fm, then opens lastyear.'),
           el('label', { for: 'u' }, 'last.fm username'),
         );
         const u = el('input', {
@@ -149,8 +149,8 @@ export class Overlay {
           for (const w of state.warnings) ul.append(el('li', {}, w));
           b.append(ul);
         }
-        b.append(el('p', { class: 'muted' }, state.debug ? '' : 'Opening lastfmyear…'));
-        const open = el('a', { class: 'primary', href: state.continueUrl }, 'Open lastfmyear');
+        b.append(el('p', { class: 'muted' }, state.debug ? '' : 'Opening lastyear…'));
+        const open = el('a', { class: 'primary', href: state.continueUrl }, 'Open lastyear');
         b.append(btns(open, ...(state.debug ? [downloadButton(() => this.handlers.onDownload())] : [])));
         break;
       }

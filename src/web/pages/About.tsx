@@ -1,9 +1,9 @@
-/** What lastfmyear reads, stores and shows. Plain list, per the page design rules. */
+/** What lastyear reads, stores and shows. Plain list, per the page design rules. */
 export function About() {
   return (
     <main className="page narrow about">
       <p className="eyebrow">
-        <a href="/">← lastfmyear</a>
+        <a href="/">← lastyear</a>
       </p>
       <h1>About</h1>
       <p className="lead">

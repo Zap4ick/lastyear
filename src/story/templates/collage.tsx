@@ -363,6 +363,7 @@ function twoLines(s: string): string[] {
 // ── template ───────────────────────────────────────────────────────────────────────────────────────
 
 export const collage: StoryTemplate = {
+  credit: { left: X, color: '#7b6a5c', fontFamily: MONO, fontSize: 22, background: PAPER },
   id: 'collage',
   name: 'Collage',
   description: 'Postmodern cut-and-paste, loud on purpose',

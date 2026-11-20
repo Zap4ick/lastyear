@@ -3,6 +3,7 @@ import { useLocation } from 'wouter';
 import type { Concert, ImportPayload } from '../../shared/types.ts';
 import { api, ApiError } from '../api.ts';
 import { ConcertList } from '../components/ConcertList.tsx';
+import { DiscoBall } from '../components/DiscoBall.tsx';
 import { PhotoPicker } from '../components/PhotoPicker.tsx';
 import { StatsPanel } from '../components/StatsPanel.tsx';
 import { TopPicks, type SlotView } from '../components/TopPicks.tsx';
@@ -112,7 +113,7 @@ export function Result({ id }: { id: string }) {
       </main>
     );
   }
-  if (!payload) return <p className="loading page">Loading…</p>;
+  if (!payload) return <DiscoBall className="loading page" label="Loading…" />;
 
   const eventsUrl = `https://www.last.fm/user/${encodeURIComponent(payload.username)}/events/${payload.year}`;
   // Only the browser that created the result holds its delete key.
@@ -161,8 +162,8 @@ export function Result({ id }: { id: string }) {
         <div className="card empty-state">
           <h2>No concerts for {payload.year} on last.fm</h2>
           <p className="muted">
-            lastfmyear reads the gigs you marked as “went” on last.fm. Find your concerts there (Events →
-            search the venue or artist → “I went”), then run the button again.
+            lastyear reads the gigs you marked as “went” on last.fm. Find your concerts there (Events → search
+            the venue or artist → “I went”), then run the button again.
           </p>
           <p className="row">
             <a className="primary" href={eventsUrl}>
@@ -204,11 +205,18 @@ export function Result({ id }: { id: string }) {
                 onChoosePhoto={setPhotoFor}
               />
               <p className={`hint${fullHint ? ' show' : ''}`} role="status">
-                {fullHint
-                  ? `You already have ${max}. Remove one first.`
-                  : picks.length < max
-                    ? 'Tap concerts to pick them. Drag the cards to change the order.'
-                    : 'Drag the cards to change the order.'}
+                {fullHint ? (
+                  `You already have ${max}. Remove one first.`
+                ) : (
+                  <>
+                    {picks.length < max && (
+                      <span className="hint-line">
+                        Choose {max - picks.length} more: click or tap a concert below.
+                      </span>
+                    )}
+                    <span className="hint-line">Drag the cards to change the order.</span>
+                  </>
+                )}
               </p>
             </div>
 
@@ -230,7 +238,7 @@ export function Result({ id }: { id: string }) {
           <button type="button" className="link" onClick={() => void onDelete(owner.token)}>
             Delete this result
           </button>
-          <span className="muted"> · removes it from lastfmyear and the link stops working</span>
+          <span className="muted"> · removes it from lastyear and the link stops working</span>
         </p>
       )}
 

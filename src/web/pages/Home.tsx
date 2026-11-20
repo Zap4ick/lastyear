@@ -91,7 +91,7 @@ export function Home() {
   return (
     <main className="page">
       <header className="hero">
-        <p className="eyebrow">lastfmyear</p>
+        <p className="eyebrow">lastyear</p>
         <h1>Your year in concerts, as a story</h1>
         <p className="lead">
           Pick your three best gigs of the year from your last.fm history and get a ready-made Instagram story
@@ -135,7 +135,7 @@ export function Home() {
       {confirmed && eventsUrl && (
         <ol className="steps">
           <li className="card">
-            <h2>Add the lastfmyear button</h2>
+            <h2>Add the lastyear button</h2>
             <p className="muted">
               A bookmark that reads your concerts from last.fm in your own browser. You only add it once.
             </p>
@@ -157,7 +157,7 @@ export function Home() {
             ) : platform === 'desktop' ? (
               <>
                 <p>Drag this button to your bookmarks bar:</p>
-                <BookmarkletLink code={bm.code}>lastfmyear</BookmarkletLink>
+                <BookmarkletLink code={bm.code}>lastyear</BookmarkletLink>
                 <p className="muted small">No bookmarks bar? Press Ctrl+Shift+B (⌘⇧B on Mac).</p>
               </>
             ) : (
@@ -170,14 +170,13 @@ export function Home() {
                   </li>
                   <li>Bookmark this page (☆ in the browser menu).</li>
                   <li>
-                    Edit that bookmark: name it <b>lastfmyear</b> and replace its address with the copied
-                    code.
+                    Edit that bookmark: name it <b>lastyear</b> and replace its address with the copied code.
                   </li>
                 </ol>
                 {platform === 'android-chrome' && (
                   <p className="note">
-                    Chrome won't run it from the bookmarks list. Instead, type <b>lastfmyear</b> in the
-                    address bar and tap the bookmark in the suggestions.
+                    Chrome won't run it from the bookmarks list. Instead, type <b>lastyear</b> in the address
+                    bar and tap the bookmark in the suggestions.
                   </p>
                 )}
                 {platform === 'ios' && <p className="note">Not tested on iPhone yet. Tell us if it works!</p>}
@@ -200,7 +199,7 @@ export function Home() {
           </li>
 
           <li className="card">
-            <h2>Tap the lastfmyear bookmark there</h2>
+            <h2>Tap the lastyear bookmark there</h2>
             <p className="muted">
               It reads your {year} concerts (about a minute: we go slowly so last.fm doesn't block us) and
               brings you back here.

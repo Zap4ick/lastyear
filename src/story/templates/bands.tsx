@@ -183,6 +183,7 @@ function Band({
 }
 
 export const bands: StoryTemplate = {
+  credit: { left: X, color: '#7a7a7a', fontFamily: MONO, fontSize: 20, letterSpacing: 3, uppercase: true },
   id: 'bands',
   name: 'Bands',
   description: 'Three black-and-white photo bands, dark',

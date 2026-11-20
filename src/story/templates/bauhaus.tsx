@@ -230,6 +230,7 @@ function Decor({ n, shapes, flat3 }: { n: number; shapes: Box[]; flat3: boolean 
 }
 
 export const bauhaus: StoryTemplate = {
+  credit: { left: X, color: '#7b776f', fontFamily: GEOMETRIC, fontWeight: 500, fontSize: 26 },
   id: 'bauhaus',
   name: 'Bauhaus',
   description: 'Primary colours, circle, square and arch',

@@ -32,7 +32,7 @@ const args = Object.fromEntries(
     .filter((a) => a.startsWith('--'))
     .map((a) => a.slice(2).split('=') as [string, string]),
 );
-const db = openDb(process.env.DB_PATH ?? 'data/lastfmyear.db');
+const db = openDb(process.env.DB_PATH ?? 'data/lastyear.db');
 const row = db.getResult(args.result ?? '');
 if (!row) throw new Error(`No result "${args.result}". Pass --result=<id from /r/<id>>`);
 const payload = JSON.parse(row.payload) as ImportPayload;
