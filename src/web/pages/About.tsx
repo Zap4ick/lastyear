@@ -52,11 +52,8 @@ export function About() {
         <div>
           <dt>Made by</dt>
           <dd>
-            <a href="https://lazuk.me" rel="author">
-              lazuk.me
-            </a>
-            . Open source under AGPL-3.0:{' '}
-            <a href="https://github.com/Zap4ick/lastyear">github.com/Zap4ick/lastyear</a>.
+            <a href="https://lazuk.me" rel="author"><br></br>
+            <a href="https://github.com/Zap4ick/lastyear">Open source</a>.
           </dd>
         </div>
       </dl>
