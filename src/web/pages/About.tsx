@@ -54,14 +54,9 @@ export function About() {
           <dd>
             <a href="https://lazuk.me" rel="author">
               lazuk.me
-            </a>{' '}
-            · <a href="https://github.com/Zap4ick">github.com/Zap4ick</a>
-          </dd>
-        </div>
-        <div>
-          <dt>Source code</dt>
-          <dd>
-            Open source under AGPL-3.0, on <a href="https://github.com/Zap4ick/lastyear">GitHub</a>.
+            </a>
+            . Open source under AGPL-3.0:{' '}
+            <a href="https://github.com/Zap4ick/lastyear">github.com/Zap4ick/lastyear</a>.
           </dd>
         </div>
       </dl>
