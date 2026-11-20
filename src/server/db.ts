@@ -44,6 +44,12 @@ export function openDb(path: string) {
     getCache: db.prepare('SELECT value FROM cache WHERE key = ? AND expires_at > ?'),
     setCache: db.prepare('INSERT OR REPLACE INTO cache (key, value, expires_at) VALUES (?, ?, ?)'),
     purgeCache: db.prepare('DELETE FROM cache WHERE expires_at <= ?'),
+    resultsOfUser: db.prepare(
+      'SELECT id, year, updated_at FROM results WHERE lower(username) = lower(?) ORDER BY year, id',
+    ),
+    deleteResultsOfUser: db.prepare('DELETE FROM results WHERE lower(username) = lower(?)'),
+    deleteCacheKey: db.prepare('DELETE FROM cache WHERE key = ?'),
+    deleteCacheByPrefix: db.prepare('DELETE FROM cache WHERE substr(key, 1, length(?1)) = ?1'),
   };
 
   return {
@@ -85,6 +91,28 @@ export function openDb(path: string) {
     },
     purgeExpired() {
       q.purgeCache.run(Date.now());
+    },
+    resultsOfUser(username: string) {
+      return q.resultsOfUser.all(username) as { id: string; year: number; updated_at: string }[];
+    },
+    /**
+     * Erase everything held about a last.fm user (a data-subject request): their results, whoever made
+     * them, and the cached profile and scrobble charts. Artist tags and photos are not about the user.
+     */
+    forgetUser(username: string): { results: number; cached: number } {
+      const name = username.toLowerCase();
+      db.exec('BEGIN');
+      try {
+        const results = Number(q.deleteResultsOfUser.run(name).changes);
+        const cached =
+          Number(q.deleteCacheKey.run(`lastfm:user:${name}`).changes) +
+          Number(q.deleteCacheByPrefix.run(`lastfm:chart:${name}:`).changes);
+        db.exec('COMMIT');
+        return { results, cached };
+      } catch (e) {
+        db.exec('ROLLBACK');
+        throw e;
+      }
     },
     close() {
       db.close();

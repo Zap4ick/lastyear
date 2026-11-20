@@ -71,3 +71,21 @@ your.domain {
 
 The whole state is `/data/lastyear.db` (results + lookup cache). Copy it with
 `sqlite3 /data/lastyear.db ".backup /data/backup.db"` (safe while running).
+
+## Data requests
+
+The About page promises to answer requests about personal data (GDPR) within a month. To see and delete
+what is held about a last.fm user (their results, whoever made them, and the cached profile and scrobble
+charts):
+
+```bash
+fly ssh console -C "node_modules/.bin/tsx src/server/forget.ts --user=<username>"           # list
+fly ssh console -C "node_modules/.bin/tsx src/server/forget.ts --user=<username> --delete"  # delete
+fly ssh console -C "node_modules/.bin/tsx src/server/forget.ts --id=<result id> --delete"   # one result
+```
+
+Locally (or with Docker: `docker compose exec app …`) it is `npm run forget -- --user=<username>`.
+Copies in old backups stay until those backups are rotated out.
+
+Request logs hold no IP addresses or usernames (route patterns only, see `logRequest` in `app.ts`); keep it
+that way, the About page says so.

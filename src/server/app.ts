@@ -40,7 +40,11 @@ const artistsQuery = (max: number) =>
   });
 
 export async function buildApp(deps: AppDeps) {
-  const app = Fastify({ logger: deps.logger ?? false, bodyLimit: 1024 * 1024, trustProxy: true });
+  const app = Fastify({
+    logger: deps.logger ? { serializers: { req: logRequest } } : false,
+    bodyLimit: 1024 * 1024,
+    trustProxy: true,
+  });
   const limit = rateLimiter();
   const https = deps.appUrl.startsWith('https://');
 
@@ -253,6 +257,14 @@ function lastfmFailure(e: unknown, reply: FastifyReply) {
 
 function tooMany(reply: FastifyReply) {
   return reply.code(429).send({ error: 'rate-limited' });
+}
+
+/**
+ * What a request log line says about the request. No IP address, and the route pattern instead of the
+ * raw URL (`/api/user/:name`, not the username), so logs hold no personal data. The About page says so.
+ */
+export function logRequest(req: FastifyRequest) {
+  return { method: req.method, url: req.routeOptions?.url ?? req.url.split('?')[0] };
 }
 
 /** Fixed-window, in-memory, per-IP limiter. Enough for one small instance. */

@@ -17,7 +17,8 @@
     "build:bookmarklet": "tsx scripts/build-bookmarklet.ts",
     "fixture:payload": "tsx scripts/fixture-payload.ts",
     "render:stories": "tsx scripts/render-stories.ts",
-    "render:edge": "tsx scripts/render-edge-cases.ts"
+    "render:edge": "tsx scripts/render-edge-cases.ts",
+    "forget": "tsx src/server/forget.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
