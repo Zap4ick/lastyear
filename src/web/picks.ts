@@ -48,9 +48,22 @@ export function sanitizePicks(raw: unknown, validKeys: Set<string>, max = MAX_PI
 
 const storageKey = (resultId: string) => `lastyear:picks:${resultId}`;
 
+/**
+ * This browser's picks for a result. With nothing saved yet and no more concerts than slots, every concert
+ * is pre-picked (in list order); once the user changes anything, their saved choice wins, even an empty one.
+ */
 export function loadPicks(resultId: string, validKeys: Set<string>, max = MAX_PICKS): Pick[] {
+  let saved: string | null = null;
   try {
-    return sanitizePicks(JSON.parse(localStorage.getItem(storageKey(resultId)) ?? '[]'), validKeys, max);
+    saved = localStorage.getItem(storageKey(resultId));
+  } catch {
+    /* storage unavailable */
+  }
+  if (saved === null) {
+    return validKeys.size <= max ? [...validKeys].map((key) => ({ key, photo: null })) : [];
+  }
+  try {
+    return sanitizePicks(JSON.parse(saved), validKeys, max);
   } catch {
     return [];
   }

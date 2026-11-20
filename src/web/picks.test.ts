@@ -117,7 +117,14 @@ describe('persistence', () => {
     const valid = new Set(['event:1', 'event:2']);
     savePicks('R1', [p('event:2'), p('event:1', img('a'))]);
     expect(loadPicks('R1', valid)).toEqual([p('event:2'), p('event:1', img('a'))]);
-    expect(loadPicks('R2', valid)).toEqual([]);
+    expect(loadPicks('R2', new Set(['event:1', 'event:2', 'event:3', 'event:4']))).toEqual([]);
+  });
+
+  it('pre-picks every concert when there are no more than the slots and nothing is saved', () => {
+    const valid = new Set(['event:5', 'festival:6']);
+    expect(loadPicks('R3', valid)).toEqual([p('event:5'), p('festival:6')]);
+    savePicks('R3', []);
+    expect(loadPicks('R3', valid)).toEqual([]); // the user's own choice, even empty, wins
   });
 
   it('concertKey', () => {

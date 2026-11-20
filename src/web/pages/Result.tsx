@@ -191,7 +191,7 @@ export function Result({ id }: { id: string }) {
                 <button
                   type="button"
                   className="primary"
-                  disabled={picks.length < max}
+                  disabled={picks.length === 0}
                   onClick={() => navigate(`/r/${id}/story`)}
                 >
                   Make my story →
@@ -211,7 +211,9 @@ export function Result({ id }: { id: string }) {
                   <>
                     {picks.length < max && (
                       <span className="hint-line">
-                        Choose {max - picks.length} more: click or tap a concert below.
+                        {picks.length === 0
+                          ? `Pick up to ${max}: click or tap a concert below.`
+                          : `You can add ${max - picks.length} more: click or tap a concert below.`}
                       </span>
                     )}
                     <span className="hint-line">Drag the cards to change the order.</span>

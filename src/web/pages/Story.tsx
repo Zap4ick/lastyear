@@ -29,7 +29,7 @@ export function storyUrl(id: string, template: string, picks: Pick[], download =
   return `/api/story/${encodeURIComponent(id)}.png?${q}`;
 }
 
-/** Pick a design: every template rendered with your top 3, side by side. */
+/** Pick a design: every template rendered with your picks (1–3), side by side. */
 export function Story({ id }: { id: string }) {
   const [payload, setPayload] = useState<ImportPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -87,10 +87,10 @@ export function Story({ id }: { id: string }) {
   }
   if (!payload) return <DiscoBall className="loading page" label="Loading…" />;
 
-  if (picks.length < max || max === 0) {
+  if (picks.length === 0) {
     return (
       <main className="page narrow">
-        <h1>Pick your top {max || 3} first</h1>
+        <h1>Pick at least one concert first</h1>
         <p>
           <a className="primary" href={`/r/${id}`}>
             ← Back to your concerts
