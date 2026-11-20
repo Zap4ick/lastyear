@@ -52,7 +52,9 @@ export function About() {
         <div>
           <dt>Made by</dt>
           <dd>
-            <a href="https://lazuk.me" rel="author"><br></br>
+            <a href="https://lazuk.me" rel="author">
+              lazuk.me
+            </a>
             <a href="https://github.com/Zap4ick/lastyear">Open source</a>.
           </dd>
         </div>
