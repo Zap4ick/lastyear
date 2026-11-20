@@ -1,0 +1,19 @@
+node_modules
+dist
+data
+.dev
+.env
+.git
+.claude
+bookmarklet
+*.log
+# test-only
+**/__fixtures__
+**/*.test.ts
+src/shared/parse/test-utils.ts
+src/shared/parse/fixture-payload.ts
+DEPLOY.md
+fly.toml
+PLAN.md
+Dockerfile
+.dockerignore

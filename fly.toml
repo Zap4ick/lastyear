@@ -1,0 +1,32 @@
+# Fly.io config (see DEPLOY.md). Change `app` and APP_URL to your app's name / domain before the first deploy.
+app = "lastyear"
+primary_region = "ams"   # waw (Warsaw) is retired; check `fly platform regions`
+
+[env]
+  NODE_ENV = "production"
+  APP_URL = "https://lastyear.fly.dev"
+
+# SQLite lives on this volume: keep exactly one machine.
+[[mounts]]
+  source = "lastyear_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "20s"
+    interval = "30s"
+    method = "GET"
+    path = "/api/health"
+    timeout = "5s"
+
+# Story rendering (Satori + resvg + sharp) peaks at a few hundred MB.
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1
