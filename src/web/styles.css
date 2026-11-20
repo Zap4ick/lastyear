@@ -710,6 +710,27 @@ button.event.picked .title {
 .about dd {
   color: var(--text);
 }
+/* GDPR details: one quiet block under the plain-language list. */
+.privacy {
+  margin-top: 40px;
+  max-width: 640px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.privacy h2 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin: 0 0 8px;
+}
+.privacy p {
+  margin: 0 0 10px;
+}
+.privacy a {
+  color: inherit;
+}
 
 /* Loading: a disco ball (components/DiscoBall.tsx) in the story colors. */
 .disco {
