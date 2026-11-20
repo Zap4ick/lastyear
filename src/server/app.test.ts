@@ -5,6 +5,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import sharp from 'sharp';
 import { buildFixturePayload } from '../shared/parse/fixture-payload.ts';
 import { detailsFor } from '../shared/parse/test-utils.ts';
 import { detailsMatchRow, eventKey } from '../shared/sharedEvents.ts';
@@ -87,15 +88,19 @@ function fakeFetch() {
   return { fn, calls };
 }
 
-async function setup({ noKey = false } = {}) {
+async function setup({
+  noKey = false,
+  wrapFetch = (fn: typeof fetch) => fn,
+}: { noKey?: boolean; wrapFetch?: (fn: typeof fetch) => typeof fetch } = {}) {
   const db = openDb(':memory:');
   const upstream = fakeFetch();
+  const fetchFn = wrapFetch(upstream.fn);
   const app = await buildApp({
     db,
-    lastfm: createLastfm({ apiKey: noKey ? undefined : 'test-key', db, fetch: upstream.fn }),
-    deezer: createDeezer({ db, fetch: upstream.fn }),
+    lastfm: createLastfm({ apiKey: noKey ? undefined : 'test-key', db, fetch: fetchFn }),
+    deezer: createDeezer({ db, fetch: fetchFn }),
     appUrl: 'http://localhost:5173',
-    fetch: upstream.fn,
+    fetch: fetchFn,
   });
   return { app, db, upstream };
 }
@@ -443,6 +448,35 @@ describe('story image', () => {
     expect((await app.inject({ url: `/api/story/${id}.png?t=index&k=<script>` })).statusCode).toBe(400);
     expect((await app.inject({ url: `/api/story/${id}.png?t=index` })).statusCode).toBe(400);
     expect((await app.inject({ url: '/api/story/AAAAAAAAAA.png?t=index&k=event:1' })).statusCode).toBe(404);
+  });
+
+  it('does not cache a story whose photo failed to load, and retries the photo next time', async () => {
+    const photo = 'https://lastfm-img.freetls.fastly.net/i/u/ar0/0123456789abcdef0123456789abcdef.jpg';
+    const jpeg = await sharp({ create: { width: 40, height: 40, channels: 3, background: '#808080' } })
+      .jpeg()
+      .toBuffer();
+    let cdnUp = false;
+    const { app } = await setup({
+      wrapFetch: (fn) =>
+        (async (input: string | URL, init?: RequestInit) =>
+          String(input) !== photo
+            ? fn(input, init)
+            : cdnUp
+              ? new Response(new Uint8Array(jpeg), { headers: { 'content-type': 'image/jpeg' } })
+              : new Response('busy', { status: 503 })) as typeof fetch,
+    });
+    const { id } = (await app.inject({ method: 'POST', url: '/api/results', payload: { payload } })).json();
+    const k = `${payload.concerts[0]!.kind}:${payload.concerts[0]!.id}`;
+    const url = `/api/story/${id}.png?t=poster&k=${k}&ph=${encodeURIComponent(photo)}`;
+
+    const down = await app.inject({ url });
+    expect(down.statusCode).toBe(200);
+    expect(down.headers['cache-control']).toBe('no-store');
+
+    cdnUp = true;
+    const up = await app.inject({ url });
+    expect(up.headers['cache-control']).toBe('public, max-age=600');
+    expect(up.rawPayload.equals(down.rawPayload)).toBe(false);
   });
 
   it('never fetches photos from hosts outside the allowlist', async () => {

@@ -70,6 +70,8 @@ export function registerStoryRoutes(app: FastifyInstance, deps: AppDeps, limit: 
       .update(JSON.stringify([row.id, row.updated_at, template.id, q.data.k, q.data.ph]))
       .digest('hex');
     let png = pngCache.get(cacheKey);
+    // A photo the CDN failed to deliver this time: send the image, but keep nobody from caching it.
+    let photoMissing = false;
     if (!png) {
       const byKey = new Map(payload.concerts.map((c) => [`${c.kind}:${c.id}`, c]));
       const picks = await Promise.all(
@@ -86,12 +88,21 @@ export function registerStoryRoutes(app: FastifyInstance, deps: AppDeps, limit: 
         }),
       );
       const stats = await statsFor(row.id, row.updated_at, payload);
-      png = await renderStory(template, buildStoryData(payload, picks, stats), { fetch: deps.fetch, credit });
-      pngCache.set(cacheKey, png);
-      if (pngCache.size > 40) pngCache.delete(pngCache.keys().next().value!);
+      png = await renderStory(template, buildStoryData(payload, picks, stats), {
+        fetch: deps.fetch,
+        credit,
+        onPhotoMissing: (url, reason) => {
+          photoMissing = true;
+          req.log.warn({ photo: url, reason }, 'story photo could not be loaded');
+        },
+      });
+      if (!photoMissing) {
+        pngCache.set(cacheKey, png);
+        if (pngCache.size > 40) pngCache.delete(pngCache.keys().next().value!);
+      }
     }
 
-    reply.type('image/png').header('Cache-Control', 'public, max-age=600');
+    reply.type('image/png').header('Cache-Control', photoMissing ? 'no-store' : 'public, max-age=600');
     if (q.data.download) {
       reply.header(
         'Content-Disposition',
